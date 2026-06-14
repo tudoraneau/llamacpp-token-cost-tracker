@@ -1,0 +1,185 @@
+{
+  "name": "token-cost-tracker",
+  "displayName": "Token Cost Tracker",
+  "description": "Track token usage and costs for local llama.cpp deployments",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "token-tracker.openDashboard",
+        "title": "Token Tracker: Open Dashboard"
+      },
+      {
+        "command": "token-tracker.exportJson",
+        "title": "Token Tracker: Export JSON"
+      },
+      {
+        "command": "token-tracker.exportCsv",
+        "title": "Token Tracker: Export CSV"
+      },
+      {
+        "command": "token-tracker.importJson",
+        "title": "Token Tracker: Import JSON"
+      },
+      {
+        "command": "token-tracker.importCsv",
+        "title": "Token Tracker: Import CSV"
+      },
+      {
+        "command": "token-tracker.resetSession",
+        "title": "Token Tracker: Reset Session"
+      },
+      {
+        "command": "token-tracker.clearHistory",
+        "title": "Token Tracker: Clear History"
+      },
+      {
+        "command": "token-tracker.manageModels",
+        "title": "Token Tracker: Manage Models"
+      },
+      {
+        "command": "token-tracker.backupDatabase",
+        "title": "Token Tracker: Backup Database"
+      },
+      {
+        "command": "token-tracker.restoreDatabase",
+        "title": "Token Tracker: Restore Database"
+      },
+      {
+        "command": "token-tracker.selectLogFile",
+        "title": "Token Tracker: Select Log File"
+      },
+      {
+        "command": "token-tracker.stopLogMonitoring",
+        "title": "Token Tracker: Stop Log Monitoring"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "token-tracker-view-container",
+          "title": "Token Tracker",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "token-tracker-view-container": [
+        {
+          "id": "token-tracker-view",
+          "name": "Token Tracker"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Token Cost Tracker",
+      "properties": {
+        "tokenTracker.currency": {
+          "type": "string",
+          "default": "USD",
+          "description": "Currency for cost calculations"
+        },
+        "tokenTracker.decimalPlaces": {
+          "type": "number",
+          "default": 4,
+          "description": "Decimal places for cost calculations"
+        },
+        "tokenTracker.maxHistoryEntries": {
+          "type": "number",
+          "default": 100000,
+          "description": "Maximum number of history entries to store"
+        },
+        "tokenTracker.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show status bar item"
+        },
+        "tokenTracker.enableCharts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable charts in dashboard"
+        },
+        "tokenTracker.confirmBeforeDelete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Confirm before deleting data"
+        },
+        "tokenTracker.storageScope": {
+          "type": "string",
+          "default": "global",
+          "enum": [
+            "global",
+            "workspace"
+          ],
+          "description": "Storage scope for data"
+        },
+        "tokenTracker.proxy.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable proxy mode for token tracking"
+        },
+        "tokenTracker.proxy.port": {
+          "type": "number",
+          "default": 31000,
+          "description": "Port for proxy service"
+        },
+        "tokenTracker.proxy.targetUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "Target URL of llama.cpp server"
+        },
+        "tokenTracker.llamaCpp.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "URL of llama.cpp server"
+        },
+        "tokenTracker.llamaCpp.requestTimeoutMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "Request timeout in milliseconds"
+        },
+        "tokenTracker.llamaCpp.enableLogMonitoring": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable log monitoring for token tracking"
+        },
+        "tokenTracker.llamaCpp.logPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to log file for monitoring"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.10.0",
+    "@typescript-eslint/parser": "^7.10.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@types/axios": "^0.9.36",
+    "axios": "^1.17.0"
+  }
+}

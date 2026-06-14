@@ -75,6 +75,15 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         });
     }
                     break;
+                case 'updateServerUrl':
+                    await vscode.workspace.getConfiguration('tokenTracker.llamaCpp').update('serverUrl', message.serverUrl, true);
+                    if (this._view) {
+        this._view.webview.postMessage({
+                            command: 'serverUrlUpdated',
+                            serverUrl: message.serverUrl
+        });
+    }
+                    break;
                 case 'refresh':
                     await this.refreshDashboard();
                     break;
@@ -91,13 +100,15 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const sessionStats = await this.dashboardService.getSessionStats();
         const lifetimeStats = await this.dashboardService.getLifetimeStats();
         const costSettings = await this.dashboardService.getCurrentCostSettings();
-        
+        const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
+
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
             sessionStats,
             lifetimeStats,
-            costSettings
+            costSettings,
+            serverUrl
         });
     }
     

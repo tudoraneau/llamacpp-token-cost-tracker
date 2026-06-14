@@ -54,6 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             
             <div class="card">
+                <div class="card-title">Server Settings</div>
+                <div class="server-settings">
+                    <div class="input-group">
+                        <label for="server-url">llama.cpp Server URL</label>
+                        <input type="text" id="server-url" value="" placeholder="http://localhost:8080">
+                    </div>
+                    <button onclick="handleUpdateServerUrl()">Update Server URL</button>
+                </div>
+            </div>
+            
+            <div class="card">
                 <div class="card-title">Cost Settings</div>
                 <div class="cost-settings">
                     <div class="input-group">
@@ -83,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listener for Enter key in cost input fields
         const inputCost = document.getElementById('input-cost') as HTMLInputElement;
         const outputCost = document.getElementById('output-cost') as HTMLInputElement;
+        const serverUrl = document.getElementById('server-url') as HTMLInputElement;
         
         if (inputCost) {
             inputCost.addEventListener('keypress', (e) => {
@@ -96,6 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
             outputCost.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleUpdateCost();
+                }
+            });
+        }
+        
+        if (serverUrl) {
+            serverUrl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleUpdateServerUrl();
                 }
             });
         }
@@ -121,6 +141,19 @@ function handleUpdateCost() {
             command: 'updateCost',
             inputCostPerMillion: inputCost,
             outputCostPerMillion: outputCost
+        });
+    }
+}
+
+function handleUpdateServerUrl() {
+    const serverUrlEl = document.getElementById('server-url') as HTMLInputElement;
+    
+    if (serverUrlEl) {
+        const serverUrl = serverUrlEl.value.trim();
+        
+        vscode.postMessage({
+            command: 'updateServerUrl',
+            serverUrl: serverUrl
         });
     }
 }
@@ -155,6 +188,11 @@ window.addEventListener('message', (event: MessageEvent) => {
                 if (inputCostEl) inputCostEl.value = String(message.costSettings.inputCostPerMillion || '0');
                 if (outputCostEl) outputCostEl.value = String(message.costSettings.outputCostPerMillion || '0');
             }
+            if (message.serverUrl !== undefined) {
+                const serverUrlEl = document.getElementById('server-url') as HTMLInputElement;
+                
+                if (serverUrlEl) serverUrlEl.value = message.serverUrl || '';
+            }
             break;
             
         case 'updateCostSettings':
@@ -164,6 +202,14 @@ window.addEventListener('message', (event: MessageEvent) => {
                 
                 if (inputCostEl) inputCostEl.value = String(message.costSettings.inputCostPerMillion || '0');
                 if (outputCostEl) outputCostEl.value = String(message.costSettings.outputCostPerMillion || '0');
+            }
+            break;
+            
+        case 'serverUrlUpdated':
+            // Update the server URL field with the new value
+            const serverUrlEl = document.getElementById('server-url') as HTMLInputElement;
+            if (serverUrlEl) {
+                serverUrlEl.value = message.serverUrl || '';
             }
             break;
             

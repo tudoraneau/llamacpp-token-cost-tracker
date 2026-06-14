@@ -75,13 +75,14 @@
       ]
     },
     "views": {
-      "token-tracker-view-container": [
-        {
-          "id": "token-tracker-view",
-          "name": "Token Tracker"
-        }
-      ]
-    },
+          "token-tracker-view-container": [
+            {
+              "id": "token-tracker-view",
+              "type": "webview",
+              "name": "Token Tracker"
+            }
+          ]
+        },
     "configuration": {
       "title": "Token Cost Tracker",
       "properties": {

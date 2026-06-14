@@ -69,7 +69,7 @@ class TokenTrackerView {
                     await this.dashboardService.importCsv();
                     break;
                 case 'resetSession':
-                    await this.dashboardService.clearHistory();
+                    await this.dashboardService.resetSession();
                     break;
                 case 'clearHistory':
                     await this.dashboardService.clearHistory();
@@ -89,7 +89,37 @@ class TokenTrackerView {
                 case 'stopLogMonitoring':
                     await vscode.commands.executeCommand('token-tracker.stopLogMonitoring');
                     break;
+                case 'updateCost':
+                    await this.dashboardService.updateCost(message.inputCostPerMillion, message.outputCostPerMillion);
+                    // After updating cost settings, inform the webview to refresh the displayed values
+                    const updatedCostSettings = await this.dashboardService.getCurrentCostSettings();
+                    if (this._view) {
+                        this._view.webview.postMessage({
+                            command: 'updateCostSettings',
+                            costSettings: updatedCostSettings
+                        });
+                    }
+                    break;
+                case 'refresh':
+                    await this.refreshDashboard();
+                    break;
             }
+        });
+    }
+    async refreshDashboard() {
+        if (!this._view) {
+            return;
+        }
+        // Get current stats and cost settings
+        const sessionStats = await this.dashboardService.getSessionStats();
+        const lifetimeStats = await this.dashboardService.getLifetimeStats();
+        const costSettings = await this.dashboardService.getCurrentCostSettings();
+        // Send updated stats to webview
+        this._view.webview.postMessage({
+            command: 'updateStats',
+            sessionStats,
+            lifetimeStats,
+            costSettings
         });
     }
     open() {

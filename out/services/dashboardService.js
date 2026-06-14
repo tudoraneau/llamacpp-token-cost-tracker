@@ -224,6 +224,32 @@ class DashboardService {
         await this.storageService.setActiveModelProfile(profile.id);
         vscode.window.showInformationMessage(`Model profile ${profile.name} activated.`);
     }
+    async getSessionStats() {
+        return this.statisticsService.getSessionStats();
+    }
+    async getLifetimeStats() {
+        return this.statisticsService.getLifetimeStats();
+    }
+    async resetSession() {
+        return this.statisticsService.resetSession();
+    }
+    async getCurrentCostSettings() {
+        const profile = this.storageService.getCurrentModelProfile();
+        return {
+            inputCostPerMillion: profile?.inputCostPerMillion ?? 0,
+            outputCostPerMillion: profile?.outputCostPerMillion ?? 0
+        };
+    }
+    async updateCost(inputCostPerMillion, outputCostPerMillion) {
+        const profiles = await this.storageService.getModelProfiles();
+        const updatedProfiles = profiles.map(p => ({
+            ...p,
+            inputCostPerMillion: inputCostPerMillion,
+            outputCostPerMillion: outputCostPerMillion
+        }));
+        await this.storageService.updateGlobalState('modelProfiles', updatedProfiles);
+        vscode.window.showInformationMessage('Cost settings updated successfully.');
+    }
 }
 exports.DashboardService = DashboardService;
 //# sourceMappingURL=dashboardService.js.map

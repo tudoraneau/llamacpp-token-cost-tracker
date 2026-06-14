@@ -45,7 +45,8 @@ class TokenTrackerView {
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
-                vscode.Uri.joinPath(this.context.extensionUri, 'out')
+                vscode.Uri.joinPath(this.context.extensionUri, 'out'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'src')
             ]
         };
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -105,11 +106,9 @@ class TokenTrackerView {
     }
     _getHtmlForWebview(webview) {
         // Get the URI for the webview script
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'out', 'webview.js'));
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'out', 'views', 'webview', 'webview.js'));
         // Get the URI for the webview CSS
-        const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'out', 'webview.css'));
-        // Get the URI for Chart.js
-        const chartUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'out', 'chart.min.js'));
+        const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src', 'views', 'webview', 'webview.css'));
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -123,7 +122,6 @@ class TokenTrackerView {
         <h1>Token Cost Tracker</h1>
         <div id="dashboard"></div>
     </div>
-    <script src="${chartUri}"></script>
     <script src="${scriptUri}"></script>
 </body>
 </html>`;

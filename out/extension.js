@@ -52,6 +52,8 @@ async function activate(context) {
     const client = new llamaCppClient_1.LlamaCppClient(vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080'), vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('requestTimeoutMs', 5000));
     // Create views
     const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService);
+    // Register webview view provider
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider('token-tracker-view', tokenTrackerView));
     // Register commands
     const commands = [
         vscode.commands.registerCommand('token-tracker.openDashboard', () => tokenTrackerView.open()),

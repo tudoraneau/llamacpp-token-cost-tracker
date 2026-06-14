@@ -22,6 +22,11 @@ export async function activate(context: vscode.ExtensionContext) {
     // Create views
     const tokenTrackerView = new TokenTrackerView(context, dashboardService);
     
+    // Register webview view provider
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider('token-tracker-view', tokenTrackerView)
+    );
+    
     // Register commands
     const commands = [
         vscode.commands.registerCommand('token-tracker.openDashboard', () => tokenTrackerView.open()),

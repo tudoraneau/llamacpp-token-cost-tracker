@@ -10,8 +10,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
-  ],
+      "onStartupFinished",
+      "onView:token-tracker-view"
+    ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [

@@ -112,8 +112,13 @@ async function activate(context) {
     statisticsService.onStatsChanged(updateStatusBar);
     updateStatusBar();
     // Handle configuration changes
-    const configChangeListener = vscode.workspace.onDidChangeConfiguration((e) => {
-        // Handle configuration changes
+    const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+        if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
+            const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+            client.updateConfig(config.get('serverUrl', 'http://localhost:8080'), config.get('requestTimeoutMs', 5000));
+            // Refresh status bar to reflect new connection state
+            await updateStatusBar();
+        }
     });
     context.subscriptions.push(configChangeListener);
 }

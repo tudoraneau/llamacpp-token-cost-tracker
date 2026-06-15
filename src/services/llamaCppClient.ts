@@ -10,6 +10,11 @@ export class LlamaCppClient {
         this.timeoutMs = timeoutMs;
     }
     
+    updateConfig(serverUrl: string, timeoutMs: number): void {
+        this.serverUrl = serverUrl;
+        this.timeoutMs = timeoutMs;
+    }
+
     async getMetrics(): Promise<any> {
         try {
             const response = await axios.get(`${this.serverUrl}/metrics`, {

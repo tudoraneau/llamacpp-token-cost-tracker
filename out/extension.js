@@ -41,15 +41,28 @@ const dashboardService_1 = require("./services/dashboardService");
 const pricingService_1 = require("./services/pricingService");
 const statisticsService_1 = require("./services/statisticsService");
 const llamaCppClient_1 = require("./services/llamaCppClient");
+const llamaCppUsageMonitor_1 = require("./services/llamaCppUsageMonitor");
 const tokenTrackerView_1 = require("./views/tokenTrackerView");
+let usageMonitor = null;
 async function activate(context) {
     // Initialize services
     const storageService = new storageService_1.StorageService(context);
     const pricingService = new pricingService_1.PricingService(storageService);
     const statisticsService = new statisticsService_1.StatisticsService(storageService);
     const dashboardService = new dashboardService_1.DashboardService(storageService, statisticsService);
-    // Initialize client
-    const client = new llamaCppClient_1.LlamaCppClient(vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080'), vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('requestTimeoutMs', 5000));
+    // Initialize client with services for token tracking
+    const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+    const serverUrl = config.get('serverUrl', 'http://localhost:8080');
+    const requestTimeoutMs = config.get('requestTimeoutMs', 5000);
+    const logPath = config.get('logPath', '');
+    const client = new llamaCppClient_1.LlamaCppClient(serverUrl, requestTimeoutMs);
+    client.setServices(storageService, statisticsService, pricingService);
+    // Initialize log file monitoring if configured
+    if (logPath) {
+        usageMonitor = new llamaCppUsageMonitor_1.LlamaCppUsageMonitor(logPath);
+        usageMonitor.setServices(storageService, statisticsService);
+        await usageMonitor.start();
+    }
     // Create views
     const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client);
     // Register webview view provider
@@ -66,19 +79,21 @@ async function activate(context) {
         vscode.commands.registerCommand('token-tracker.manageModels', () => dashboardService.manageModels()),
         vscode.commands.registerCommand('token-tracker.backupDatabase', () => storageService.backup()),
         vscode.commands.registerCommand('token-tracker.restoreDatabase', () => storageService.restore()),
-        vscode.commands.registerCommand('token-tracker.selectLogFile', () => {
-            vscode.window.showOpenDialog({
-                filters: {
-                    'Log Files': ['log', 'txt']
-                }
-            }).then((fileUri) => {
-                if (fileUri && fileUri[0]) {
-                    vscode.workspace.getConfiguration('tokenTracker.llamaCpp').update('logPath', fileUri[0].fsPath, true);
-                }
+        vscode.commands.registerCommand('token-tracker.selectLogFile', async () => {
+            const fileUri = await vscode.window.showOpenDialog({
+                filters: { 'Log Files': ['log', 'txt'] }
             });
+            if (fileUri && fileUri[0]) {
+                await vscode.workspace.getConfiguration('tokenTracker.llamaCpp').update('logPath', fileUri[0].fsPath, true);
+                vscode.window.showInformationMessage(`Log monitoring started for: ${fileUri[0].fsPath}`);
+            }
         }),
         vscode.commands.registerCommand('token-tracker.stopLogMonitoring', () => {
-            // Log monitoring will be handled differently
+            if (usageMonitor) {
+                usageMonitor.stop();
+                usageMonitor = null;
+                vscode.window.showInformationMessage('Log monitoring stopped.');
+            }
         })
     ];
     // Add to extension context
@@ -86,41 +101,47 @@ async function activate(context) {
     // Initialize status bar
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBar.command = 'token-tracker.openDashboard';
-    statusBar.text = 'Token Tracker';
+    statusBar.text = '$(pulse) Token Tracker';
     statusBar.show();
+    context.subscriptions.push(statusBar);
     // Update status bar with current stats
     const updateStatusBar = async () => {
-        // Get current model and stats
-        const currentModel = storageService.getCurrentModelName();
-        const sessionStats = await statisticsService.getSessionStats();
-        const lifetimeStats = await statisticsService.getLifetimeStats();
-        let statusText = currentModel ? currentModel : 'No model';
-        if (sessionStats.totalTokens > 0) {
-            const totalTokensFormatted = sessionStats.totalTokens >= 1000000
-                ? `${(sessionStats.totalTokens / 1000000).toFixed(1)}M`
-                : sessionStats.totalTokens;
-            statusText += ` | ${totalTokensFormatted} Tokens`;
-            // Calculate cost if enabled
-            const cost = pricingService.calculateCost(sessionStats.promptTokens, sessionStats.completionTokens);
-            if (cost > 0) {
-                statusText += ` | $${cost.toFixed(2)}`;
+        try {
+            const currentModel = storageService.getCurrentModelName();
+            const sessionStats = await statisticsService.getSessionStats();
+            let statusText = currentModel ? `$(check) ${currentModel}` : '$(question) No model';
+            if (sessionStats.totalTokens > 0) {
+                const formatted = sessionStats.totalTokens >= 1000000
+                    ? `${(sessionStats.totalTokens / 1000000).toFixed(1)}M`
+                    : sessionStats.totalTokens.toLocaleString();
+                statusText += ` | ${formatted} tokens`;
+                const cost = pricingService.calculateCost(sessionStats.promptTokens, sessionStats.completionTokens);
+                if (cost > 0) {
+                    statusText += ` | $${cost.toFixed(4)}`;
+                }
             }
+            statusBar.text = statusText;
         }
-        statusBar.text = statusText;
+        catch (error) {
+            console.error('[TokenTracker] Error updating status bar:', error);
+        }
     };
     // Update status bar when stats change
     statisticsService.onStatsChanged(updateStatusBar);
-    updateStatusBar();
+    await updateStatusBar();
     // Handle configuration changes
     const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
             const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
             client.updateConfig(config.get('serverUrl', 'http://localhost:8080'), config.get('requestTimeoutMs', 5000));
-            // Refresh status bar to reflect new connection state
             await updateStatusBar();
         }
     });
     context.subscriptions.push(configChangeListener);
 }
-function deactivate() { }
+function deactivate() {
+    if (usageMonitor) {
+        usageMonitor.stop();
+    }
+}
 //# sourceMappingURL=extension.js.map

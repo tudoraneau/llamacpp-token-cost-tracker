@@ -4,8 +4,10 @@ import { DashboardService } from './services/dashboardService';
 import { PricingService } from './services/pricingService';
 import { StatisticsService } from './services/statisticsService';
 import { LlamaCppClient } from './services/llamaCppClient';
+import { LlamaCppUsageMonitor } from './services/llamaCppUsageMonitor';
 import { TokenTrackerView } from './views/tokenTrackerView';
 
+let usageMonitor: LlamaCppUsageMonitor | null = null;
 export async function activate(context: vscode.ExtensionContext) {
     // Initialize services
     const storageService = new StorageService(context);
@@ -13,11 +15,20 @@ export async function activate(context: vscode.ExtensionContext) {
     const statisticsService = new StatisticsService(storageService);
     const dashboardService = new DashboardService(storageService, statisticsService);
     
-    // Initialize client
-    const client = new LlamaCppClient(
-        vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080'),
-        vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<number>('requestTimeoutMs', 5000)
-    );
+    // Initialize client with services for token tracking
+    const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+    const serverUrl = config.get<string>('serverUrl', 'http://localhost:8080');
+    const requestTimeoutMs = config.get<number>('requestTimeoutMs', 5000);
+    const logPath = config.get<string>('logPath', '');
+    const client = new LlamaCppClient(serverUrl, requestTimeoutMs);
+    client.setServices(storageService, statisticsService, pricingService);
+    
+    // Initialize log file monitoring if configured
+    if (logPath) {
+        usageMonitor = new LlamaCppUsageMonitor(logPath);
+        usageMonitor.setServices(storageService, statisticsService);
+        await usageMonitor.start();
+    }
     
     // Create views
     const tokenTrackerView = new TokenTrackerView(context, dashboardService, client);
@@ -39,19 +50,21 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('token-tracker.manageModels', () => dashboardService.manageModels()),
         vscode.commands.registerCommand('token-tracker.backupDatabase', () => storageService.backup()),
         vscode.commands.registerCommand('token-tracker.restoreDatabase', () => storageService.restore()),
-        vscode.commands.registerCommand('token-tracker.selectLogFile', () => {
-            vscode.window.showOpenDialog({
-                filters: {
-                    'Log Files': ['log', 'txt']
-                }
-            }).then((fileUri) => {
-                if (fileUri && fileUri[0]) {
-                    vscode.workspace.getConfiguration('tokenTracker.llamaCpp').update('logPath', fileUri[0].fsPath, true);
-                }
+        vscode.commands.registerCommand('token-tracker.selectLogFile', async () => {
+            const fileUri = await vscode.window.showOpenDialog({
+                filters: { 'Log Files': ['log', 'txt'] }
             });
+                if (fileUri && fileUri[0]) {
+                await vscode.workspace.getConfiguration('tokenTracker.llamaCpp').update('logPath', fileUri[0].fsPath, true);
+                vscode.window.showInformationMessage(`Log monitoring started for: ${fileUri[0].fsPath}`);
+                }
         }),
-        vscode.commands.registerCommand('token-tracker.stopLogMonitoring', () => {
-            // Log monitoring will be handled differently
+                vscode.commands.registerCommand('token-tracker.stopLogMonitoring', () => {
+            if (usageMonitor) {
+                usageMonitor.stop();
+                usageMonitor = null;
+                vscode.window.showInformationMessage('Log monitoring stopped.');
+            }
         })
     ];
     
@@ -61,40 +74,41 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize status bar
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBar.command = 'token-tracker.openDashboard';
-    statusBar.text = 'Token Tracker';
+    statusBar.text = '$(pulse) Token Tracker';
     statusBar.show();
+    context.subscriptions.push(statusBar);
     
     // Update status bar with current stats
     const updateStatusBar = async () => {
-        // Get current model and stats
+        try {
         const currentModel = storageService.getCurrentModelName();
         const sessionStats = await statisticsService.getSessionStats();
-        const lifetimeStats = await statisticsService.getLifetimeStats();
-        
-        let statusText = currentModel ? currentModel : 'No model';
+            let statusText = currentModel ? `$(check) ${currentModel}` : '$(question) No model';
         
         if (sessionStats.totalTokens > 0) {
-            const totalTokensFormatted = sessionStats.totalTokens >= 1000000 
+                const formatted = sessionStats.totalTokens >= 1000000
                 ? `${(sessionStats.totalTokens / 1000000).toFixed(1)}M` 
-                : sessionStats.totalTokens;
-            statusText += ` | ${totalTokensFormatted} Tokens`;
+                    : sessionStats.totalTokens.toLocaleString();
+                statusText += ` | ${formatted} tokens`;
             
-            // Calculate cost if enabled
             const cost = pricingService.calculateCost(
                 sessionStats.promptTokens,
                 sessionStats.completionTokens
             );
             if (cost > 0) {
-                statusText += ` | $${cost.toFixed(2)}`;
+                    statusText += ` | $${cost.toFixed(4)}`;
             }
         }
         
         statusBar.text = statusText;
+        } catch (error) {
+            console.error('[TokenTracker] Error updating status bar:', error);
+        }
     };
     
     // Update status bar when stats change
     statisticsService.onStatsChanged(updateStatusBar);
-    updateStatusBar();
+    await updateStatusBar();
     
     // Handle configuration changes
     const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
@@ -104,7 +118,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 config.get<string>('serverUrl', 'http://localhost:8080'),
                 config.get<number>('requestTimeoutMs', 5000)
             );
-            // Refresh status bar to reflect new connection state
             await updateStatusBar();
         }
     });
@@ -112,6 +125,9 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(configChangeListener);
 }
 
-export function deactivate() {}
-
+export function deactivate() {
+    if (usageMonitor) {
+        usageMonitor.stop();
+    }
+    }
 

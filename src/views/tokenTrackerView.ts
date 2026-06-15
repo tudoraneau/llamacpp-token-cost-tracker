@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
 import { DashboardService } from '../services/dashboardService';
+import { LlamaCppClient } from '../services/llamaCppClient';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private dashboardService: DashboardService;
+    private llamaCppClient: LlamaCppClient;
     
-    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService) {
+    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient) {
         this.dashboardService = dashboardService;
+        this.llamaCppClient = llamaCppClient;
     }
     
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -102,13 +105,17 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
 
+        // Check connection status
+        const connected = await this.llamaCppClient.isConnected();
+
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
             sessionStats,
             lifetimeStats,
             costSettings,
-            serverUrl
+            serverUrl,
+            connected
         });
     }
     

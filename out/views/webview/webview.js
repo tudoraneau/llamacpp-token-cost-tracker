@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboard = document.getElementById('dashboard');
     if (dashboard) {
         dashboard.innerHTML = `
+            <div class="connection-status" id="connection-status">
+                <span class="status-indicator" id="status-indicator"></span>
+                <span id="status-text">Checking connection...</span>
+            </div>
             <div class="card">
                 <div class="card-title">Session Statistics</div>
                 <div class="stat-grid">
@@ -107,6 +111,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Request initial data
     vscode.postMessage({ command: 'refresh' });
 });
+function updateConnectionStatus(connected) {
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    if (statusIndicator && statusText) {
+        if (connected) {
+            statusIndicator.className = 'status-indicator connected';
+            statusText.textContent = 'Connected to llama.cpp server';
+        }
+        else {
+            statusIndicator.className = 'status-indicator disconnected';
+            statusText.textContent = 'Disconnected from llama.cpp server';
+        }
+    }
+}
 function handleCommand(command) {
     vscode.postMessage({ command });
 }
@@ -137,6 +155,10 @@ window.addEventListener('message', (event) => {
     const message = event.data;
     switch (message.command) {
         case 'updateStats':
+            // Update connection status
+            if (typeof message.connected === 'boolean') {
+                updateConnectionStatus(message.connected);
+            }
             if (message.sessionStats) {
                 const promptEl = document.getElementById('prompt-tokens');
                 const completionEl = document.getElementById('completion-tokens');

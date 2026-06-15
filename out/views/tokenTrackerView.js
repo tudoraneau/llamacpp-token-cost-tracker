@@ -36,9 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
 class TokenTrackerView {
-    constructor(context, dashboardService) {
+    constructor(context, dashboardService, llamaCppClient) {
         this.context = context;
         this.dashboardService = dashboardService;
+        this.llamaCppClient = llamaCppClient;
     }
     resolveWebviewView(webviewView) {
         this._view = webviewView;
@@ -124,13 +125,16 @@ class TokenTrackerView {
         const lifetimeStats = await this.dashboardService.getLifetimeStats();
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080');
+        // Check connection status
+        const connected = await this.llamaCppClient.isConnected();
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
             sessionStats,
             lifetimeStats,
             costSettings,
-            serverUrl
+            serverUrl,
+            connected
         });
     }
     open() {

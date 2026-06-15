@@ -20,7 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     
     // Create views
-    const tokenTrackerView = new TokenTrackerView(context, dashboardService);
+    const tokenTrackerView = new TokenTrackerView(context, dashboardService, client);
     
     // Register webview view provider
     context.subscriptions.push(
@@ -113,4 +113,5 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
 

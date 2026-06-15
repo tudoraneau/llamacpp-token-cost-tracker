@@ -62,4 +62,9 @@ export class LlamaCppClient {
             throw error;
         }
     }
+
+    async isConnected(): Promise<boolean> {
+        const health = await this.getHealth();
+        return health !== null;
+    }
 }

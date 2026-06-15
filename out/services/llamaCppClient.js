@@ -62,6 +62,10 @@ class LlamaCppClient {
             throw error;
         }
     }
+    async isConnected() {
+        const health = await this.getHealth();
+        return health !== null;
+    }
 }
 exports.LlamaCppClient = LlamaCppClient;
 //# sourceMappingURL=llamaCppClient.js.map

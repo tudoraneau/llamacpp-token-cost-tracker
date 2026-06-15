@@ -97,11 +97,20 @@ export async function activate(context: vscode.ExtensionContext) {
     updateStatusBar();
     
     // Handle configuration changes
-    const configChangeListener = vscode.workspace.onDidChangeConfiguration((e) => {
-        // Handle configuration changes
+    const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+        if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
+            const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+            client.updateConfig(
+                config.get<string>('serverUrl', 'http://localhost:8080'),
+                config.get<number>('requestTimeoutMs', 5000)
+            );
+            // Refresh status bar to reflect new connection state
+            await updateStatusBar();
+        }
     });
-    
+
     context.subscriptions.push(configChangeListener);
 }
 
 export function deactivate() {}
+

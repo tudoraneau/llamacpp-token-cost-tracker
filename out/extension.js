@@ -82,7 +82,7 @@ async function activate(context) {
         await usageMonitor.start();
     }
     // Create views
-    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client, proxy);
+    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client, proxy, storageService);
     // Register webview view provider
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('token-tracker-view', tokenTrackerView));
     // Register commands

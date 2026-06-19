@@ -2,17 +2,20 @@ import * as vscode from 'vscode';
 import { DashboardService } from '../services/dashboardService';
 import { LlamaCppClient } from '../services/llamaCppClient';
 import { LlamaCppProxy } from '../services/llamaCppProxy';
+import { StorageService } from '../services/storageService';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private proxy: LlamaCppProxy | null = null;
     private _view?: vscode.WebviewView;
     private dashboardService: DashboardService;
     private llamaCppClient: LlamaCppClient;
+    private storageService: StorageService;
     
-    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy) {
+    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService) {
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
+        this.storageService = storageService;
     }
     
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -121,6 +124,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
 
+        // Get current model name
+        const modelName = this.storageService.getCurrentModelName();
+        
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
@@ -130,7 +136,8 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             serverUrl,
             proxyTargetUrl,
             connected,
-            proxyRunning
+            proxyRunning,
+            modelName
         });
     }
     

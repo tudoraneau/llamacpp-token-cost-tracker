@@ -36,12 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
 class TokenTrackerView {
-    constructor(context, dashboardService, llamaCppClient, proxy) {
+    constructor(context, dashboardService, llamaCppClient, proxy, storageService) {
         this.context = context;
         this.proxy = null;
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
+        this.storageService = storageService;
     }
     resolveWebviewView(webviewView) {
         this._view = webviewView;
@@ -138,6 +139,8 @@ class TokenTrackerView {
         const connected = await this.llamaCppClient.isConnected();
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
+        // Get current model name
+        const modelName = this.storageService.getCurrentModelName();
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
@@ -147,7 +150,8 @@ class TokenTrackerView {
             serverUrl,
             proxyTargetUrl,
             connected,
-            proxyRunning
+            proxyRunning,
+            modelName
         });
     }
     async open() {

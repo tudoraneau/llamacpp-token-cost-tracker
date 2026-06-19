@@ -59,14 +59,8 @@ class TokenTrackerView {
                 case 'openDashboard':
                     // This command is handled by the extension activation
                     break;
-                case 'exportJson':
-                    await this.dashboardService.exportJson();
-                    break;
                 case 'exportCsv':
                     await this.dashboardService.exportCsv();
-                    break;
-                case 'importJson':
-                    await this.dashboardService.importJson();
                     break;
                 case 'importCsv':
                     await this.dashboardService.importCsv();

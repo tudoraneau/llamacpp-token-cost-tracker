@@ -110,9 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             <div class="card">
                 <div class="card-title">Actions</div>
-                <button onclick="handleCommand('exportJson')">Export JSON</button>
                 <button onclick="handleCommand('exportCsv')">Export CSV</button>
-                <button onclick="handleCommand('importJson')">Import JSON</button>
                 <button onclick="handleCommand('importCsv')">Import CSV</button>
                 <button onclick="handleCommand('manageModels')">Manage Models</button>
                 <button class="secondary" onclick="handleCommand('resetSession')">Reset Session</button>

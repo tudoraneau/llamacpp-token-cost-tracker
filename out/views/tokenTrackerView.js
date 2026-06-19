@@ -182,7 +182,7 @@ class TokenTrackerView {
  </head>
  <body>
      <div class="container">
-         <h1>Token Cost Tracker</h1>
+         <h1>llama.cpp Token Cost Tracker</h1>
          <div id="dashboard"></div>
      </div>
      <script src="${scriptUri}"></script>

@@ -41,21 +41,39 @@ const dashboardService_1 = require("./services/dashboardService");
 const pricingService_1 = require("./services/pricingService");
 const statisticsService_1 = require("./services/statisticsService");
 const llamaCppClient_1 = require("./services/llamaCppClient");
+const llamaCppProxy_1 = require("./services/llamaCppProxy");
 const llamaCppUsageMonitor_1 = require("./services/llamaCppUsageMonitor");
 const tokenTrackerView_1 = require("./views/tokenTrackerView");
 let usageMonitor = null;
+let proxy = null;
+const PROXY_PORT = 8081;
+const LLAMA_CPP_DEFAULT_PORT = 8080;
 async function activate(context) {
     // Initialize services
     const storageService = new storageService_1.StorageService(context);
     const pricingService = new pricingService_1.PricingService(storageService);
     const statisticsService = new statisticsService_1.StatisticsService(storageService);
     const dashboardService = new dashboardService_1.DashboardService(storageService, statisticsService);
-    // Initialize client with services for token tracking
-    const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
-    const serverUrl = config.get('serverUrl', 'http://localhost:8080');
-    const requestTimeoutMs = config.get('requestTimeoutMs', 5000);
-    const logPath = config.get('logPath', '');
-    const client = new llamaCppClient_1.LlamaCppClient(serverUrl, requestTimeoutMs);
+    // Get configuration
+    const llamaCppConfig = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+    const serverUrl = llamaCppConfig.get('serverUrl', 'http://localhost:8080');
+    const requestTimeoutMs = llamaCppConfig.get('requestTimeoutMs', 5000);
+    const logPath = llamaCppConfig.get('logPath', '');
+    const proxyConfig = vscode.workspace.getConfiguration('tokenTracker.proxy');
+    const proxyTargetUrl = proxyConfig.get('targetUrl', 'http://localhost:8080');
+    // Start proxy to intercept and track requests
+    proxy = new llamaCppProxy_1.LlamaCppProxy(PROXY_PORT, proxyTargetUrl);
+    proxy.setServices(storageService, statisticsService, pricingService);
+    try {
+        await proxy.start();
+    }
+    catch (error) {
+        console.error('[TokenTracker] Failed to start proxy:', error);
+        vscode.window.showErrorMessage('Token Tracker: Failed to start proxy. Please check if port ' + PROXY_PORT + ' is available.');
+        return;
+    }
+    // Initialize client with services for token tracking - route through proxy
+    const client = new llamaCppClient_1.LlamaCppClient(proxy.getProxyUrl(), requestTimeoutMs);
     client.setServices(storageService, statisticsService, pricingService);
     // Initialize log file monitoring if configured
     if (logPath) {
@@ -64,7 +82,7 @@ async function activate(context) {
         await usageMonitor.start();
     }
     // Create views
-    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client);
+    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client, proxy);
     // Register webview view provider
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('token-tracker-view', tokenTrackerView));
     // Register commands
@@ -94,7 +112,7 @@ async function activate(context) {
                 usageMonitor = null;
                 vscode.window.showInformationMessage('Log monitoring stopped.');
             }
-        })
+        }),
     ];
     // Add to extension context
     context.subscriptions.push(...commands, tokenTrackerView);
@@ -133,15 +151,26 @@ async function activate(context) {
     const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
             const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
-            client.updateConfig(config.get('serverUrl', 'http://localhost:8080'), config.get('requestTimeoutMs', 5000));
+            const newServerUrl = config.get('serverUrl', 'http://localhost:8080');
+            const newTimeout = config.get('requestTimeoutMs', 5000);
+            // Update proxy target if server URL changed
+            if (proxy) {
+                proxy.updateTarget(newServerUrl);
+            }
+            if (proxy) {
+                client.updateConfig(proxy?.getProxyUrl() ?? 'http://localhost:8081', newTimeout);
+            }
             await updateStatusBar();
         }
     });
     context.subscriptions.push(configChangeListener);
 }
-function deactivate() {
+async function deactivate() {
     if (usageMonitor) {
         usageMonitor.stop();
+    }
+    if (proxy) {
+        await proxy.stop();
     }
 }
 //# sourceMappingURL=extension.js.map

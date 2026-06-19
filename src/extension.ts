@@ -4,10 +4,15 @@ import { DashboardService } from './services/dashboardService';
 import { PricingService } from './services/pricingService';
 import { StatisticsService } from './services/statisticsService';
 import { LlamaCppClient } from './services/llamaCppClient';
+import { LlamaCppProxy } from './services/llamaCppProxy';
 import { LlamaCppUsageMonitor } from './services/llamaCppUsageMonitor';
 import { TokenTrackerView } from './views/tokenTrackerView';
 
 let usageMonitor: LlamaCppUsageMonitor | null = null;
+let proxy: LlamaCppProxy | null = null;
+
+const PROXY_PORT = 8081;
+const LLAMA_CPP_DEFAULT_PORT = 8080;
 export async function activate(context: vscode.ExtensionContext) {
     // Initialize services
     const storageService = new StorageService(context);
@@ -15,15 +20,32 @@ export async function activate(context: vscode.ExtensionContext) {
     const statisticsService = new StatisticsService(storageService);
     const dashboardService = new DashboardService(storageService, statisticsService);
     
-    // Initialize client with services for token tracking
-    const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
-    const serverUrl = config.get<string>('serverUrl', 'http://localhost:8080');
-    const requestTimeoutMs = config.get<number>('requestTimeoutMs', 5000);
-    const logPath = config.get<string>('logPath', '');
-    const client = new LlamaCppClient(serverUrl, requestTimeoutMs);
-    client.setServices(storageService, statisticsService, pricingService);
+    // Get configuration
+        const llamaCppConfig = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+        const serverUrl = llamaCppConfig.get<string>('serverUrl', 'http://localhost:8080');
+        const requestTimeoutMs = llamaCppConfig.get<number>('requestTimeoutMs', 5000);
+        const logPath = llamaCppConfig.get<string>('logPath', '');
+        
+        const proxyConfig = vscode.workspace.getConfiguration('tokenTracker.proxy');
+        const proxyTargetUrl = proxyConfig.get<string>('targetUrl', 'http://localhost:8080');
     
-    // Initialize log file monitoring if configured
+        // Start proxy to intercept and track requests
+        proxy = new LlamaCppProxy(PROXY_PORT, proxyTargetUrl);
+        proxy.setServices(storageService, statisticsService, pricingService);
+    
+        try {
+            await proxy.start();
+        } catch (error) {
+            console.error('[TokenTracker] Failed to start proxy:', error);
+            vscode.window.showErrorMessage('Token Tracker: Failed to start proxy. Please check if port ' + PROXY_PORT + ' is available.');
+            return;
+        }
+    
+        // Initialize client with services for token tracking - route through proxy
+        const client = new LlamaCppClient(proxy.getProxyUrl(), requestTimeoutMs);
+        client.setServices(storageService, statisticsService, pricingService);
+    
+        // Initialize log file monitoring if configured
     if (logPath) {
         usageMonitor = new LlamaCppUsageMonitor(logPath);
         usageMonitor.setServices(storageService, statisticsService);
@@ -31,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     
     // Create views
-    const tokenTrackerView = new TokenTrackerView(context, dashboardService, client);
+    const tokenTrackerView = new TokenTrackerView(context, dashboardService, client, proxy);
     
     // Register webview view provider
     context.subscriptions.push(
@@ -65,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 usageMonitor = null;
                 vscode.window.showInformationMessage('Log monitoring stopped.');
             }
-        })
+        }),
     ];
     
     // Add to extension context
@@ -111,23 +133,33 @@ export async function activate(context: vscode.ExtensionContext) {
     await updateStatusBar();
     
     // Handle configuration changes
-    const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
-            const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
-            client.updateConfig(
-                config.get<string>('serverUrl', 'http://localhost:8080'),
-                config.get<number>('requestTimeoutMs', 5000)
-            );
-            await updateStatusBar();
-        }
-    });
+        const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+            if (e.affectsConfiguration('tokenTracker.llamaCpp')) {
+                const config = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
+                const newServerUrl = config.get<string>('serverUrl', 'http://localhost:8080');
+                const newTimeout = config.get<number>('requestTimeoutMs', 5000);
+            
+                // Update proxy target if server URL changed
+                if (proxy) {
+                    proxy.updateTarget(newServerUrl);
+                }
+            
+                if (proxy) {
+                    client.updateConfig(proxy?.getProxyUrl() ?? 'http://localhost:8081', newTimeout);
+                }
+                await updateStatusBar();
+            }
+        });
 
     context.subscriptions.push(configChangeListener);
 }
 
-export function deactivate() {
+export async function deactivate() {
     if (usageMonitor) {
         usageMonitor.stop();
     }
+    if (proxy) {
+        await proxy.stop();
     }
+}
 

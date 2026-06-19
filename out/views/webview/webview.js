@@ -9,6 +9,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="status-indicator" id="status-indicator"></span>
                 <span id="status-text">Checking connection...</span>
             </div>
+            
+            <div class="card">
+                <div class="card-title">Proxy Status</div>
+                <div class="proxy-status">
+                    <span class="proxy-led" id="proxy-led"></span>
+                    <span id="proxy-status-text">Proxy: Stopped</span>
+                    <button onclick="handleCommand('toggleProxy')" id="proxy-toggle-btn">Start Proxy</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Proxy Settings</div>
+                <div class="server-settings">
+                    <div class="input-group">
+                        <label for="proxy-port">Proxy Port</label>
+                        <input type="number" id="proxy-port" value="8081" min="1" max="65535">
+                    </div>
+                    <div class="input-group">
+                        <label for="proxy-target-url">Proxy Target URL</label>
+                        <input type="text" id="proxy-target-url" value="" placeholder="http://localhost:8080">
+                    </div>
+                    <button onclick="handleUpdateProxySettings()">Update Proxy Settings</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Llama.cpp Configuration</div>
+                <div class="server-settings">
+                    <div class="input-group">
+                        <label for="server-url">llama.cpp Server URL</label>
+                        <input type="text" id="server-url" value="" placeholder="http://localhost:8080">
+                    </div>
+                    <button onclick="handleUpdateServerUrl()">Update Server URL</button>
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-title">Session Statistics</div>
                 <div class="stat-grid">
@@ -42,17 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="stat-value" id="lifetime-cost">$0.00</div>
                         <div class="stat-label">Total Cost</div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Server Settings</div>
-                <div class="server-settings">
-                    <div class="input-group">
-                        <label for="server-url">llama.cpp Server URL</label>
-                        <input type="text" id="server-url" value="" placeholder="http://localhost:8080">
-                    </div>
-                    <button onclick="handleUpdateServerUrl()">Update Server URL</button>
                 </div>
             </div>
             
@@ -151,6 +176,33 @@ function handleUpdateServerUrl() {
         });
     }
 }
+function handleUpdateProxySettings() {
+    const proxyPortEl = document.getElementById('proxy-port');
+    const proxyTargetUrlEl = document.getElementById('proxy-target-url');
+    if (proxyPortEl && proxyTargetUrlEl) {
+        const proxyPort = parseInt(proxyPortEl.value) || 8081;
+        const proxyTargetUrl = proxyTargetUrlEl.value.trim();
+        vscode.postMessage({
+            command: 'updateProxySettings',
+            proxyPort: proxyPort,
+            serverUrl: proxyTargetUrl
+        });
+    }
+}
+function updateProxyStatus(isRunning) {
+    const proxyLed = document.getElementById('proxy-led');
+    const proxyStatusText = document.getElementById('proxy-status-text');
+    const proxyToggleBtn = document.getElementById('proxy-toggle-btn');
+    if (proxyLed) {
+        proxyLed.className = 'proxy-led ' + (isRunning ? 'running' : 'stopped');
+    }
+    if (proxyStatusText) {
+        proxyStatusText.textContent = 'Proxy: ' + (isRunning ? 'Running' : 'Stopped');
+    }
+    if (proxyToggleBtn) {
+        proxyToggleBtn.textContent = isRunning ? 'Stop Proxy' : 'Start Proxy';
+    }
+}
 window.addEventListener('message', (event) => {
     const message = event.data;
     switch (message.command) {
@@ -158,6 +210,10 @@ window.addEventListener('message', (event) => {
             // Update connection status
             if (typeof message.connected === 'boolean') {
                 updateConnectionStatus(message.connected);
+            }
+            // Update proxy status
+            if (typeof message.proxyRunning === 'boolean') {
+                updateProxyStatus(message.proxyRunning);
             }
             if (message.sessionStats) {
                 const promptEl = document.getElementById('prompt-tokens');
@@ -194,6 +250,11 @@ window.addEventListener('message', (event) => {
                 if (serverUrlEl)
                     serverUrlEl.value = message.serverUrl || '';
             }
+            if (message.proxyTargetUrl !== undefined) {
+                const proxyTargetUrlEl = document.getElementById('proxy-target-url');
+                if (proxyTargetUrlEl)
+                    proxyTargetUrlEl.value = message.proxyTargetUrl || '';
+            }
             break;
         case 'updateCostSettings':
             if (message.costSettings) {
@@ -211,6 +272,9 @@ window.addEventListener('message', (event) => {
             if (serverUrlEl) {
                 serverUrlEl.value = message.serverUrl || '';
             }
+            break;
+        case 'proxyStatus':
+            updateProxyStatus(message.isRunning);
             break;
         case 'costUpdated':
             // Show success message

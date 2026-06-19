@@ -179,6 +179,7 @@ export class LlamaCppProxy {
             let cumulativeCompletionTokens = 0;
             let model = 'Unknown Model';
             let tracked = false;
+            let buffer = '';
 
             const targetReq = lib.request(targetUrl, {
                 method: req.method,
@@ -193,23 +194,29 @@ export class LlamaCppProxy {
                 });
 
                 targetRes.on('data', async (chunk: Buffer) => {
-                    const text = chunk.toString();
-                    const lines = text.split('\n');
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const dataStr = line.slice(6).trim();
-                            if (dataStr === '[DONE]') {
-                                res.write('data: [DONE]\n\n');
-                                continue;
-                            }
-                            
-                            // Handle multiple JSON objects on one line (newline-delimited JSON)
-                            const jsonObjects = dataStr.split('\n').filter(obj => obj.trim() !== '');
-                            
-                            for (const jsonObject of jsonObjects) {
+                    buffer += chunk.toString();
+                    
+                    // Server-sent events are separated by \n\n
+                    const parts = buffer.split('\n\n');
+                    // Keep the last incomplete part in buffer
+                    buffer = parts.pop() || '';
+                    
+                    for (const part of parts) {
+                        // Clean up the part - remove trailing \n if present
+                        const cleanedPart = part.replace(/\n$/, '');
+                        const lines = cleanedPart.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.slice(6).trim();
+                                if (dataStr === '[DONE]') {
+                                    res.write('data: [DONE]\n\n');
+                                    continue;
+                                }
+                                
+                                // Try to parse the JSON
                                 try {
-                                    const parsed = JSON.parse(jsonObject);
+                                    const parsed = JSON.parse(dataStr);
                                     const usage = this.extractUsageFromResponse(parsed);
                                     if (usage) {
                                         model = usage.model || model;
@@ -221,9 +228,11 @@ export class LlamaCppProxy {
                                         cumulativeCompletionTokens += 1;
                                     }
                                 } catch { /* not json, pass through */ }
+                                
+                                // Forward the complete data line
+                                res.write(line + '\n\n');
                             }
                         }
-                        res.write(line + '\n');
                     }
                 });
 

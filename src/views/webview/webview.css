@@ -170,3 +170,28 @@ button.danger {
 button.danger:hover {
     background: #c82333;
 }
+
+/* Proxy LED indicator */
+.proxy-led {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.proxy-led.running {
+    background: #28a745;
+    box-shadow: 0 0 5px #28a745;
+}
+
+.proxy-led.stopped {
+    background: #dc3545;
+    box-shadow: 0 0 5px #dc3545;
+}
+
+.proxy-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

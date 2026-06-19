@@ -191,25 +191,29 @@ class LlamaCppProxy {
                     const lines = text.split('\n');
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
-                            const dataStr = line.slice(6);
+                            const dataStr = line.slice(6).trim();
                             if (dataStr === '[DONE]') {
                                 res.write('data: [DONE]\n\n');
                                 continue;
                             }
-                            try {
-                                const parsed = JSON.parse(dataStr);
-                                const usage = this.extractUsageFromResponse(parsed);
-                                if (usage) {
-                                    model = usage.model || model;
-                                    cumulativePromptTokens = usage.promptTokens || cumulativePromptTokens;
-                                    cumulativeCompletionTokens += usage.completionTokens || 0;
+                            // Handle multiple JSON objects on one line (newline-delimited JSON)
+                            const jsonObjects = dataStr.split('\n').filter(obj => obj.trim() !== '');
+                            for (const jsonObject of jsonObjects) {
+                                try {
+                                    const parsed = JSON.parse(jsonObject);
+                                    const usage = this.extractUsageFromResponse(parsed);
+                                    if (usage) {
+                                        model = usage.model || model;
+                                        cumulativePromptTokens = usage.promptTokens || cumulativePromptTokens;
+                                        cumulativeCompletionTokens += usage.completionTokens || 0;
+                                    }
+                                    // Also count each chunk as 1 completion token if no usage info
+                                    if (parsed.content || parsed.choices?.[0]?.delta?.content) {
+                                        cumulativeCompletionTokens += 1;
+                                    }
                                 }
-                                // Also count each chunk as 1 completion token if no usage info
-                                if (parsed.content || parsed.choices?.[0]?.delta?.content) {
-                                    cumulativeCompletionTokens += 1;
-                                }
+                                catch { /* not json, pass through */ }
                             }
-                            catch { /* not json, pass through */ }
                         }
                         res.write(line + '\n');
                     }

@@ -46,9 +46,6 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                 case 'clearHistory':
                     await this.dashboardService.clearHistory();
                     break;
-                case 'manageModels':
-                    await this.dashboardService.manageModels();
-                    break;
                 case 'backupDatabase':
                     await vscode.commands.executeCommand('token-tracker.backupDatabase');
                     break;

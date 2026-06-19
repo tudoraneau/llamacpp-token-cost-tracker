@@ -1,6 +1,6 @@
 {
   "name": "token-cost-tracker",
-  "displayName": "Token Cost Tracker",
+  "displayName": "llama.cpp Token Cost Tracker",
   "description": "Track token usage and costs for local llama.cpp deployments",
   "version": "0.0.1",
   "engines": {
@@ -45,10 +45,6 @@
         "title": "Token Tracker: Clear History"
       },
       {
-        "command": "token-tracker.manageModels",
-        "title": "Token Tracker: Manage Models"
-      },
-      {
         "command": "token-tracker.backupDatabase",
         "title": "Token Tracker: Backup Database"
       },
@@ -84,7 +80,7 @@
           ]
         },
     "configuration": {
-      "title": "Token Cost Tracker",
+      "title": "llama.cpp Token Cost Tracker",
       "properties": {
         "tokenTracker.currency": {
           "type": "string",
@@ -105,11 +101,6 @@
           "type": "boolean",
           "default": true,
           "description": "Show status bar item"
-        },
-        "tokenTracker.enableCharts": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable charts in dashboard"
         },
         "tokenTracker.confirmBeforeDelete": {
           "type": "boolean",

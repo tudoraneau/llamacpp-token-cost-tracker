@@ -57,12 +57,6 @@ export class StorageService {
         }
 }
 
-    // Get current model name
-    public getCurrentModelName(): string {
-        const config = vscode.workspace.getConfiguration('tokenTracker');
-        return config.get<string>('currentModel', 'Unknown');
-    }
-
     // Usage Records methods
     public async getUsageRecords(): Promise<UsageRecord[]> {
         return this.context.globalState.get<UsageRecord[]>('usageRecords', []);
@@ -97,6 +91,29 @@ export class StorageService {
     public getCurrentModelProfile(): ModelProfile | undefined {
         const profiles = this.context.globalState.get<ModelProfile[]>('modelProfiles', []);
         return profiles.find(p => p.isActive) || profiles[0];
+    }
+
+    public getCurrentModelName(): string {
+        // First, try to get the model name from the most recent usage record
+        const usageRecords = this.context.globalState.get<UsageRecord[]>('usageRecords', []);
+        if (usageRecords.length > 0) {
+            // Get the most recent usage record (sorted by timestamp descending)
+            const sortedRecords = [...usageRecords].sort((a, b) => b.timestamp - a.timestamp);
+            const lastRecord = sortedRecords[0];
+            if (lastRecord.model) {
+                return lastRecord.model;
+            }
+        }
+        
+        // Fallback to active profile name if no usage records
+        const profile = this.getCurrentModelProfile();
+        if (profile && profile.name) {
+            return profile.name;
+        }
+        
+        // Final fallback to configuration value
+        const config = vscode.workspace.getConfiguration('tokenTracker');
+        return config.get<string>('currentModel', 'Unknown');
     }
 
     public async setActiveModelProfile(profileId: string): Promise<void> {

@@ -17,9 +17,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (dashboard) {
                 dashboard.innerHTML = `
-            <div class="connection-status" id="connection-status">
-                <span class="status-indicator" id="status-indicator"></span>
-                <span id="status-text">Checking connection...</span>
+            <div class="card">
+                <div class="card-title">llama.cpp Status</div>
+                <div class="connection-status" id="connection-status">
+                    <div>
+                        <span class="status-indicator" id="status-indicator"></span>
+                        <span id="status-text">Checking connection...</span>
+                    </div>
+                    <div>
+                        <span id="model-text" class="model-name"></span>
+                    </div>
+                </div>
             </div>
             
             <div class="card">
@@ -172,9 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
     vscode.postMessage({ command: 'refresh' });
 });
 
-function updateConnectionStatus(connected: boolean) {
+function updateConnectionStatus(connected: boolean, modelName: string = '') {
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
+    const modelText = document.getElementById('model-text');
     
     if (statusIndicator && statusText) {
         if (connected) {
@@ -183,6 +192,16 @@ function updateConnectionStatus(connected: boolean) {
         } else {
             statusIndicator.className = 'status-indicator disconnected';
             statusText.textContent = 'Disconnected from llama.cpp server';
+        }
+    }
+    
+    if (modelText) {
+        if (modelName) {
+            modelText.textContent = `Model: ${modelName}`;
+            modelText.className = 'model-name';
+        } else {
+            modelText.textContent = '';
+            modelText.className = 'model-name hidden';
         }
     }
 }
@@ -261,7 +280,7 @@ window.addEventListener('message', (event: MessageEvent) => {
         case 'updateStats':
             // Update connection status
             if (typeof message.connected === 'boolean') {
-                updateConnectionStatus(message.connected);
+                updateConnectionStatus(message.connected, message.modelName);
             }
             
             // Update proxy status

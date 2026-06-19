@@ -19,80 +19,90 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             
-            <div class="card">
+            <div class="card collapsible">
                 <div class="card-title">Proxy Settings</div>
-                <div class="server-settings">
-                    <div class="input-group">
-                        <label for="proxy-port">Proxy Port</label>
-                        <input type="number" id="proxy-port" value="8081" min="1" max="65535">
+                <div class="card-content">
+                    <div class="server-settings">
+                        <div class="input-group">
+                            <label for="proxy-port">Proxy Port</label>
+                            <input type="number" id="proxy-port" value="8081" min="1" max="65535">
+                        </div>
+                        <div class="input-group">
+                            <label for="proxy-target-url">Proxy Target URL</label>
+                            <input type="text" id="proxy-target-url" value="" placeholder="http://localhost:8080">
+                        </div>
+                        <button onclick="handleUpdateProxySettings()">Update Proxy Settings</button>
                     </div>
-                    <div class="input-group">
-                        <label for="proxy-target-url">Proxy Target URL</label>
-                        <input type="text" id="proxy-target-url" value="" placeholder="http://localhost:8080">
-                    </div>
-                    <button onclick="handleUpdateProxySettings()">Update Proxy Settings</button>
                 </div>
             </div>
             
-            <div class="card">
+            <div class="card collapsible">
                 <div class="card-title">Llama.cpp Configuration</div>
-                <div class="server-settings">
-                    <div class="input-group">
-                        <label for="server-url">llama.cpp Server URL</label>
-                        <input type="text" id="server-url" value="" placeholder="http://localhost:8080">
+                <div class="card-content">
+                    <div class="server-settings">
+                        <div class="input-group">
+                            <label for="server-url">llama.cpp Server URL</label>
+                            <input type="text" id="server-url" value="" placeholder="http://localhost:8080">
+                        </div>
+                        <button onclick="handleUpdateServerUrl()">Update Server URL</button>
                     </div>
-                    <button onclick="handleUpdateServerUrl()">Update Server URL</button>
                 </div>
             </div>
             
-            <div class="card">
+            <div class="card collapsible">
                 <div class="card-title">Session Statistics</div>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="prompt-tokens">0</div>
-                        <div class="stat-label">Prompt Tokens</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="completion-tokens">0</div>
-                        <div class="stat-label">Completion Tokens</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="total-tokens">0</div>
-                        <div class="stat-label">Total Tokens</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="cost">$0.00</div>
-                        <div class="stat-label">Estimated Cost</div>
+                <div class="card-content">
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="prompt-tokens">0</div>
+                            <div class="stat-label">Prompt Tokens</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="completion-tokens">0</div>
+                            <div class="stat-label">Completion Tokens</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="total-tokens">0</div>
+                            <div class="stat-label">Total Tokens</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="cost">$0.00</div>
+                            <div class="stat-label">Estimated Cost</div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="card">
+            <div class="card collapsible">
                 <div class="card-title">Lifetime Statistics</div>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="lifetime-tokens">0</div>
-                        <div class="stat-label">Total Tokens</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="lifetime-cost">$0.00</div>
-                        <div class="stat-label">Total Cost</div>
+                <div class="card-content">
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="lifetime-tokens">0</div>
+                            <div class="stat-label">Total Tokens</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="lifetime-cost">$0.00</div>
+                            <div class="stat-label">Total Cost</div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="card">
+            <div class="card collapsible">
                 <div class="card-title">Cost Settings</div>
-                <div class="cost-settings">
-                    <div class="input-group">
-                        <label for="input-cost">Input Cost per 1M tokens ($)</label>
-                        <input type="number" id="input-cost" step="0.01" min="0" value="0" placeholder="0.00">
+                <div class="card-content">
+                    <div class="cost-settings">
+                        <div class="input-group">
+                            <label for="input-cost">Input Cost per 1M tokens ($)</label>
+                            <input type="number" id="input-cost" step="0.01" min="0" value="0" placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label for="output-cost">Output Cost per 1M tokens ($)</label>
+                            <input type="number" id="output-cost" step="0.01" min="0" value="0" placeholder="0.00">
+                        </div>
+                        <button onclick="handleUpdateCost()">Update Cost</button>
                     </div>
-                    <div class="input-group">
-                        <label for="output-cost">Output Cost per 1M tokens ($)</label>
-                        <input type="number" id="output-cost" step="0.01" min="0" value="0" placeholder="0.00">
-                    </div>
-                    <button onclick="handleUpdateCost()">Update Cost</button>
                 </div>
             </div>
             
@@ -131,6 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+    // Add toggle functionality for collapsible cards
+    const collapsibleCards = document.querySelectorAll('.card.collapsible');
+    collapsibleCards.forEach((card) => {
+        const cardTitle = card.querySelector('.card-title');
+        if (cardTitle) {
+            cardTitle.addEventListener('click', () => {
+                card.classList.toggle('collapsed');
+            });
+        }
+    });
     // Request initial data
     vscode.postMessage({ command: 'refresh' });
 });

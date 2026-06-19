@@ -52,6 +52,41 @@ h1 {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.card.collapsible {
+    cursor: pointer;
+}
+
+.card.collapsible .card-title {
+    position: relative;
+    padding-right: 25px;
+}
+
+.card.collapsible .card-title::after {
+    content: '▼';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    transition: transform 0.3s ease;
+}
+
+.card.collapsible.collapsed .card-title::after {
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+.card-content {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    overflow: hidden;
+    opacity: 1;
+}
+
+.card.collapsed .card-content {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+}
+
 .card-title {
     font-size: 1.2em;
     font-weight: bold;

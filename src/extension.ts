@@ -69,7 +69,6 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('token-tracker.importCsv', () => dashboardService.importCsv()),
         vscode.commands.registerCommand('token-tracker.resetSession', () => statisticsService.resetSession()),
         vscode.commands.registerCommand('token-tracker.clearHistory', () => dashboardService.clearHistory()),
-        vscode.commands.registerCommand('token-tracker.manageModels', () => dashboardService.manageModels()),
         vscode.commands.registerCommand('token-tracker.backupDatabase', () => storageService.backup()),
         vscode.commands.registerCommand('token-tracker.restoreDatabase', () => storageService.restore()),
         vscode.commands.registerCommand('token-tracker.selectLogFile', async () => {

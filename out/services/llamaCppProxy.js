@@ -138,19 +138,30 @@ class LlamaCppProxy {
                 targetRes.on('data', (chunk) => chunks.push(chunk));
                 targetRes.on('end', async () => {
                     const responseBody = Buffer.concat(chunks).toString();
+                    console.log(`[TokenTracker] Proxy received response: ${responseBody.substring(0, 500)}${responseBody.length > 500 ? '...' : ''}`);
                     let parsed = null;
                     try {
                         parsed = JSON.parse(responseBody);
+                        console.log(`[TokenTracker] Proxy parsed response: ${JSON.stringify(parsed)}`);
                     }
-                    catch { /* not json */ }
+                    catch (err) {
+                        console.log(`[TokenTracker] Proxy response is not JSON: ${responseBody.substring(0, 100)}`);
+                    }
                     await this.trackTokenUsage(parsed);
                     res.writeHead(targetRes.statusCode ?? 200, targetRes.headers);
                     res.end(responseBody);
                     resolve();
                 });
-                targetRes.on('error', reject);
+                targetRes.on('error', (err) => {
+                    console.error('[TokenTracker] Target response error:', err.message);
+                    reject(err);
+                });
             });
-            targetReq.on('error', reject);
+            targetReq.on('error', (err) => {
+                console.error('[TokenTracker] Target request error:', err.message);
+                console.error('[TokenTracker] Target URL:', targetUrl);
+                reject(err);
+            });
             if (body)
                 targetReq.write(body);
             targetReq.end();
@@ -227,12 +238,18 @@ class LlamaCppProxy {
         });
     }
     async trackTokenUsage(responseData) {
-        if (!this.statisticsService)
+        console.log(`[TokenTracker] Proxy trackTokenUsage called with: ${JSON.stringify(responseData)}`);
+        if (!this.statisticsService) {
+            console.log('[TokenTracker] Proxy statisticsService is null, skipping tracking');
             return;
+        }
         try {
             const usage = this.extractUsageFromResponse(responseData);
-            if (!usage)
+            console.log(`[TokenTracker] Proxy extracted usage: ${JSON.stringify(usage)}`);
+            if (!usage) {
+                console.log('[TokenTracker] Proxy no usage data extracted, skipping tracking');
                 return;
+            }
             const cost = this.pricingService
                 ? this.pricingService.calculateCost(usage.promptTokens, usage.completionTokens)
                 : 0;
@@ -247,8 +264,13 @@ class LlamaCppProxy {
                     cost: cost,
                 };
                 await this.storageService.addUsageRecord(record);
+                console.log('[TokenTracker] Proxy saved usage record');
+            }
+            else {
+                console.log('[TokenTracker] Proxy storageService is null');
             }
             await this.statisticsService.updateStats(usage.promptTokens, usage.completionTokens, usage.totalTokens, cost);
+            console.log('[TokenTracker] Proxy updated statistics');
             console.log(`[TokenTracker] Proxy tracked: ${usage.totalTokens} tokens (${usage.promptTokens} prompt, ${usage.completionTokens} completion)`);
         }
         catch (error) {

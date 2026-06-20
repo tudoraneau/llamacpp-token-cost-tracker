@@ -126,10 +126,14 @@ class LlamaCppClient {
     }
     async isConnected() {
         try {
-            await this.getHealth();
+            const response = await this.getHealth();
+            // Check if response exists and is valid (not null/undefined)
+            if (!response) {
+                return false;
+            }
             return true;
         }
-        catch {
+        catch (error) {
             return false;
         }
     }

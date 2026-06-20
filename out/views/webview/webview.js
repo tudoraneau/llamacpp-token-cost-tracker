@@ -176,7 +176,8 @@ function updateConnectionStatus(connected, modelName = '') {
         }
     }
     if (modelText) {
-        if (modelName) {
+        // Only show model name when connected
+        if (connected && modelName) {
             modelText.textContent = `Model: ${modelName}`;
             modelText.className = 'model-name';
         }

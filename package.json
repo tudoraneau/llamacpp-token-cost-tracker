@@ -123,7 +123,7 @@
         },
         "tokenTracker.proxy.port": {
           "type": "number",
-          "default": 31000,
+          "default": 8081,
           "description": "Port for proxy service"
         },
         "tokenTracker.proxy.targetUrl": {

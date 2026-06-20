@@ -10,11 +10,13 @@ This extension is not affiliated in any way with any other projects.
 
 ## Price Calculation Logic
 
+```typescript
 inputPricePerToken = inputCostPerMillion / 1,000,000
 outputPricePerToken = outputCostPerMillion / 1,000,000
 inputCost = promptTokens * inputPricePerToken
 outputCost = completionTokens * outputPricePerToken
 totalCost = inputCost + outputCost
+```
 
 ## Requirements
 
@@ -40,7 +42,7 @@ totalCost = inputCost + outputCost
 - `tokenTracker.confirmBeforeDelete`: Confirm before deleting data (default: true)
 - `tokenTracker.storageScope`: Storage scope for data (default: global)
 - `tokenTracker.proxy.enabled`: Enable proxy mode for token tracking (default: true)
-- `tokenTracker.proxy.port`: Port for proxy service (default: 31000)
+- `tokenTracker.proxy.port`: Port for proxy service (default: 8081)
 - `tokenTracker.proxy.targetUrl`: Target URL of llama.cpp server (default: http://localhost:8080)
 - `tokenTracker.llamaCpp.serverUrl`: URL of llama.cpp server (default: http://localhost:8080)
 - `tokenTracker.llamaCpp.requestTimeoutMs`: Request timeout in milliseconds (default: 5000)
@@ -60,24 +62,6 @@ totalCost = inputCost + outputCost
 - `Token Tracker: Restore Database`
 - `Token Tracker: Select Log File`
 - `Token Tracker: Stop Log Monitoring`
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-* `tokenTracker.currency`: Currency for cost calculations
-* `tokenTracker.decimalPlaces`: Decimal places for cost calculations
-* `tokenTracker.maxHistoryEntries`: Maximum number of history entries to store
-* `tokenTracker.showStatusBar`: Show status bar item
-* `tokenTracker.confirmBeforeDelete`: Confirm before deleting data
-* `tokenTracker.storageScope`: Storage scope for data
-* `tokenTracker.proxy.enabled`: Enable proxy mode for token tracking
-* `tokenTracker.proxy.port`: Port for proxy service
-* `tokenTracker.proxy.targetUrl`: Target URL of llama.cpp server
-* `tokenTracker.llamaCpp.serverUrl`: URL of llama.cpp server
-* `tokenTracker.llamaCpp.requestTimeoutMs`: Request timeout in milliseconds
-* `tokenTracker.llamaCpp.enableLogMonitoring`: Enable log monitoring for token tracking
-* `tokenTracker.llamaCpp.logPath`: Path to log file for monitoring
 
 ## License
 

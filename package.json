@@ -1,5 +1,6 @@
 {
-  "name": "token-cost-tracker",
+  "name": "llamacpp-token-cost-tracker",
+  "publisher": "tudoraneau",
   "displayName": "llama.cpp Token Cost Tracker",
   "description": "Track token usage and costs for local llama.cpp deployments",
   "version": "0.0.1",

@@ -173,6 +173,9 @@ class StorageService {
         };
         await this.context.globalState.update('sessionStats', updated);
     }
+    async setSessionStats(stats) {
+        await this.context.globalState.update('sessionStats', stats);
+    }
     async updateLifetimeStats(delta) {
         const current = await this.getLifetimeStats();
         const updated = {
@@ -183,6 +186,9 @@ class StorageService {
             cost: current.cost + (delta.cost ?? 0)
         };
         await this.context.globalState.update('lifetimeStats', updated);
+    }
+    async setLifetimeStats(stats) {
+        await this.context.globalState.update('lifetimeStats', stats);
     }
     // Public method to update global state (for import/export)
     async updateGlobalState(key, value) {

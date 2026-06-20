@@ -27,7 +27,18 @@ class StatisticsService {
         this.listeners.forEach(listener => listener());
     }
     async resetSession() {
-        await this.storageService.updateSessionStats({
+        await this.storageService.setSessionStats({
+            requests: 0,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            cost: 0
+        });
+        // Notify listeners
+        this.listeners.forEach(listener => listener());
+    }
+    async resetLifetime() {
+        await this.storageService.setLifetimeStats({
             requests: 0,
             promptTokens: 0,
             completionTokens: 0,

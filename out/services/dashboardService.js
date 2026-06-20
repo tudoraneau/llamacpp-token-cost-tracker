@@ -141,6 +141,41 @@ class DashboardService {
                 }
                 // Restore records
                 await this.storageService.updateGlobalState('usageRecords', records);
+                // Recalculate and update session/lifetime stats
+                let sessionPromptTokens = 0;
+                let sessionCompletionTokens = 0;
+                let sessionTotalTokens = 0;
+                let sessionCost = 0;
+                let lifetimePromptTokens = 0;
+                let lifetimeCompletionTokens = 0;
+                let lifetimeTotalTokens = 0;
+                let lifetimeCost = 0;
+                for (const record of records) {
+                    sessionPromptTokens += record.promptTokens;
+                    sessionCompletionTokens += record.completionTokens;
+                    sessionTotalTokens += record.totalTokens;
+                    sessionCost += record.cost;
+                    lifetimePromptTokens += record.promptTokens;
+                    lifetimeCompletionTokens += record.completionTokens;
+                    lifetimeTotalTokens += record.totalTokens;
+                    lifetimeCost += record.cost;
+                }
+                // Directly set session stats (not add to existing)
+                await this.storageService.updateGlobalState('sessionStats', {
+                    requests: records.length,
+                    promptTokens: sessionPromptTokens,
+                    completionTokens: sessionCompletionTokens,
+                    totalTokens: sessionTotalTokens,
+                    cost: sessionCost
+                });
+                // Directly set lifetime stats (not add to existing)
+                await this.storageService.updateGlobalState('lifetimeStats', {
+                    requests: records.length,
+                    promptTokens: lifetimePromptTokens,
+                    completionTokens: lifetimeCompletionTokens,
+                    totalTokens: lifetimeTotalTokens,
+                    cost: lifetimeCost
+                });
                 vscode.window.showInformationMessage('Token Tracker data imported from CSV successfully.');
             }
         }
@@ -158,6 +193,7 @@ class DashboardService {
         }
         await this.storageService.clearUsageRecords();
         await this.statisticsService.resetSession();
+        await this.statisticsService.resetLifetime();
         vscode.window.showInformationMessage('Token Tracker history cleared successfully.');
     }
     async getSessionStats() {

@@ -164,6 +164,10 @@ export class StorageService {
         await this.context.globalState.update('sessionStats', updated);
     }
 
+    public async setSessionStats(stats: Statistics): Promise<void> {
+        await this.context.globalState.update('sessionStats', stats);
+    }
+
     public async updateLifetimeStats(delta: Partial<Statistics>): Promise<void> {
         const current = await this.getLifetimeStats();
         const updated: Statistics = {
@@ -174,6 +178,10 @@ export class StorageService {
             cost: current.cost + (delta.cost ?? 0)
         };
         await this.context.globalState.update('lifetimeStats', updated);
+    }
+
+    public async setLifetimeStats(stats: Statistics): Promise<void> {
+        await this.context.globalState.update('lifetimeStats', stats);
     }
 
     // Public method to update global state (for import/export)

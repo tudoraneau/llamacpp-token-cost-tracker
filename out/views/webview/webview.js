@@ -121,6 +121,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="secondary" onclick="handleCommand('resetSession')">Reset Session</button>
                 <button class="danger" onclick="handleCommand('clearHistory')">Clear History</button>
             </div>
+            
+            <div class="card collapsible">
+                <div class="card-title">OneDrive Sync</div>
+                <div class="card-content">
+                    <div class="onedrive-settings">
+                        <div class="input-group">
+                            <label for="onedrive-path">OneDrive Path</label>
+                            <input type="text" id="onedrive-path" value="" placeholder="C:\Users\Username\OneDrive">
+                        </div>
+                        <div class="sync-status">
+                            <span class="sync-led" id="sync-led"></span>
+                            <span id="sync-status-text">Sync status: Not synced</span>
+                        </div>
+                        <div class="sync-buttons">
+                            <button onclick="handleCommand('syncToOneDrive')">Sync to OneDrive</button>
+                            <button onclick="handleCommand('restoreFromOneDrive')">Restore from OneDrive</button>
+                        </div>
+                        <div class="sync-info">
+                            <span id="sync-info-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
         // Add event listener for Enter key in cost input fields
         const inputCost = document.getElementById('input-cost');
@@ -144,6 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
             serverUrl.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleUpdateServerUrl();
+                }
+            });
+        }
+        // Add event listener for OneDrive path input
+        const onedrivePath = document.getElementById('onedrive-path');
+        if (onedrivePath) {
+            onedrivePath.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleUpdateOneDrivePath();
                 }
             });
         }
@@ -226,6 +258,51 @@ function handleUpdateProxySettings() {
         });
     }
 }
+function handleUpdateOneDrivePath() {
+    const onedrivePathEl = document.getElementById('onedrive-path');
+    if (onedrivePathEl) {
+        const onedrivePath = onedrivePathEl.value.trim();
+        vscode.postMessage({
+            command: 'updateOneDrivePath',
+            onedrivePath: onedrivePath
+        });
+    }
+}
+function updateSyncStatus(syncStatus) {
+    const syncLed = document.getElementById('sync-led');
+    const syncStatusText = document.getElementById('sync-status-text');
+    const syncInfoText = document.getElementById('sync-info-text');
+    if (syncLed) {
+        if (syncStatus && syncStatus.lastSyncSuccess) {
+            syncLed.className = 'sync-led sync-success';
+        }
+        else if (syncStatus && syncStatus.lastSync) {
+            syncLed.className = 'sync-led sync-failure';
+        }
+        else {
+            syncLed.className = 'sync-led sync-neutral';
+        }
+    }
+    if (syncStatusText) {
+        if (syncStatus && syncStatus.lastSync) {
+            const date = new Date(syncStatus.lastSync);
+            const formattedDate = date.toLocaleString();
+            syncStatusText.textContent = `Sync status: ${syncStatus.lastSyncSuccess ? 'Last sync successful' : 'Last sync failed'} - ${formattedDate}`;
+        }
+        else {
+            syncStatusText.textContent = 'Sync status: Not synced';
+        }
+    }
+    if (syncInfoText) {
+        if (syncStatus && syncStatus.lastSyncError) {
+            syncInfoText.textContent = `Error: ${syncStatus.lastSyncError}`;
+            syncInfoText.style.color = '#dc3545';
+        }
+        else if (syncStatus && syncStatus.lastSyncSuccess) {
+            syncInfoText.textContent = '';
+        }
+    }
+}
 function updateProxyStatus(isRunning) {
     const proxyLed = document.getElementById('proxy-led');
     const proxyStatusText = document.getElementById('proxy-status-text');
@@ -292,6 +369,14 @@ window.addEventListener('message', (event) => {
                 if (proxyTargetUrlEl)
                     proxyTargetUrlEl.value = message.proxyTargetUrl || '';
             }
+            if (message.onedrivePath !== undefined) {
+                const onedrivePathEl = document.getElementById('onedrive-path');
+                if (onedrivePathEl)
+                    onedrivePathEl.value = message.onedrivePath || '';
+            }
+            if (message.syncStatus) {
+                updateSyncStatus(message.syncStatus);
+            }
             break;
         case 'updateCostSettings':
             if (message.costSettings) {
@@ -308,6 +393,13 @@ window.addEventListener('message', (event) => {
             const serverUrlEl = document.getElementById('server-url');
             if (serverUrlEl) {
                 serverUrlEl.value = message.serverUrl || '';
+            }
+            break;
+        case 'onedrivePathUpdated':
+            // Update the OneDrive path field with the new value
+            const onedrivePathEl = document.getElementById('onedrive-path');
+            if (onedrivePathEl) {
+                onedrivePathEl.value = message.onedrivePath || '';
             }
             break;
         case 'proxyStatus':

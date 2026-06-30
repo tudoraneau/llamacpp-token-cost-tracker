@@ -3,7 +3,7 @@
   "publisher": "tudoraneau",
   "displayName": "llama.cpp Token Cost Tracker",
   "description": "Track token usage and costs for local llama.cpp deployments",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -60,6 +60,14 @@
       {
         "command": "token-tracker.stopLogMonitoring",
         "title": "Token Tracker: Stop Log Monitoring"
+      },
+      {
+        "command": "token-tracker.syncToOneDrive",
+        "title": "Token Tracker: Sync to OneDrive"
+      },
+      {
+        "command": "token-tracker.restoreFromOneDrive",
+        "title": "Token Tracker: Restore from OneDrive"
       }
     ],
     "viewsContainers": {
@@ -151,6 +159,11 @@
           "type": "string",
           "default": "",
           "description": "Path to log file for monitoring"
+        },
+        "tokenTracker.onedrivePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to OneDrive folder for automatic sync"
         }
       }
     }

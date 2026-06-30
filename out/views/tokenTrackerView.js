@@ -36,13 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
 class TokenTrackerView {
-    constructor(context, dashboardService, llamaCppClient, proxy, storageService) {
+    constructor(context, dashboardService, llamaCppClient, proxy, storageService, onedriveSyncService = null) {
         this.context = context;
         this.proxy = null;
+        this.onedriveSyncService = null;
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
         this.storageService = storageService;
+        this.onedriveSyncService = onedriveSyncService;
     }
     resolveWebviewView(webviewView) {
         this._view = webviewView;
@@ -87,6 +89,12 @@ class TokenTrackerView {
                 case 'stopLogMonitoring':
                     await vscode.commands.executeCommand('token-tracker.stopLogMonitoring');
                     break;
+                case 'syncToOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.syncToOneDrive');
+                    break;
+                case 'restoreFromOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.restoreFromOneDrive');
+                    break;
                 case 'updateCost':
                     await this.dashboardService.updateCost(message.inputCostPerMillion, message.outputCostPerMillion);
                     // After updating cost settings, inform the webview to refresh the displayed values
@@ -122,6 +130,15 @@ class TokenTrackerView {
                         }
                     }
                     break;
+                case 'updateOneDrivePath':
+                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
+                    if (this._view) {
+                        this._view.webview.postMessage({
+                            command: 'onedrivePathUpdated',
+                            onedrivePath: message.onedrivePath
+                        });
+                    }
+                    break;
                 case 'refresh':
                     await this.refreshDashboard();
                     break;
@@ -138,12 +155,15 @@ class TokenTrackerView {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get('targetUrl', 'http://localhost:8080');
+        const onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get('onedrivePath', '');
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
         // Get current model name
         const modelName = this.storageService.getCurrentModelName();
+        // Get sync status
+        const syncStatus = this.onedriveSyncService ? this.onedriveSyncService.getSyncStatus() : null;
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
@@ -154,7 +174,9 @@ class TokenTrackerView {
             proxyTargetUrl,
             connected,
             proxyRunning,
-            modelName
+            modelName,
+            syncStatus,
+            onedrivePath
         });
     }
     async open() {

@@ -44,8 +44,10 @@ const llamaCppClient_1 = require("./services/llamaCppClient");
 const llamaCppProxy_1 = require("./services/llamaCppProxy");
 const llamaCppUsageMonitor_1 = require("./services/llamaCppUsageMonitor");
 const tokenTrackerView_1 = require("./views/tokenTrackerView");
+const onedriveSyncService_1 = require("./services/onedriveSyncService");
 let usageMonitor = null;
 let proxy = null;
+let onedriveSyncService = null;
 const PROXY_PORT = 8081;
 const LLAMA_CPP_DEFAULT_PORT = 8080;
 async function activate(context) {
@@ -54,6 +56,7 @@ async function activate(context) {
     const pricingService = new pricingService_1.PricingService(storageService);
     const statisticsService = new statisticsService_1.StatisticsService(storageService);
     const dashboardService = new dashboardService_1.DashboardService(storageService, statisticsService);
+    onedriveSyncService = new onedriveSyncService_1.OneDriveSyncService(context);
     // Get configuration
     const llamaCppConfig = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
     const serverUrl = llamaCppConfig.get('serverUrl', 'http://localhost:8080');
@@ -82,7 +85,7 @@ async function activate(context) {
         await usageMonitor.start();
     }
     // Create views
-    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client, proxy, storageService);
+    const tokenTrackerView = new tokenTrackerView_1.TokenTrackerView(context, dashboardService, client, proxy, storageService, onedriveSyncService);
     // Register webview view provider
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('token-tracker-view', tokenTrackerView));
     // Register commands
@@ -110,6 +113,16 @@ async function activate(context) {
                 usageMonitor.stop();
                 usageMonitor = null;
                 vscode.window.showInformationMessage('Log monitoring stopped.');
+            }
+        }),
+        vscode.commands.registerCommand('token-tracker.syncToOneDrive', async () => {
+            if (onedriveSyncService) {
+                await onedriveSyncService.syncToOneDrive();
+            }
+        }),
+        vscode.commands.registerCommand('token-tracker.restoreFromOneDrive', async () => {
+            if (onedriveSyncService) {
+                await onedriveSyncService.syncFromOneDrive();
             }
         }),
     ];

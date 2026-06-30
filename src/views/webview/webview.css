@@ -238,3 +238,55 @@ button.danger:hover {
     align-items: center;
     gap: 10px;
 }
+
+/* Sync LED indicator */
+.sync-led {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.sync-led.sync-success {
+    background: #28a745;
+    box-shadow: 0 0 5px #28a745;
+}
+
+.sync-led.sync-failure {
+    background: #dc3545;
+    box-shadow: 0 0 5px #dc3545;
+}
+
+.sync-led.sync-neutral {
+    background: #6c757d;
+    box-shadow: 0 0 5px #6c757d;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.sync-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.sync-buttons button {
+    flex: 1;
+}
+
+.sync-info {
+    margin-top: 10px;
+    font-size: 0.85em;
+}
+
+.onedrive-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}

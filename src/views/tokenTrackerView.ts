@@ -3,6 +3,7 @@ import { DashboardService } from '../services/dashboardService';
 import { LlamaCppClient } from '../services/llamaCppClient';
 import { LlamaCppProxy } from '../services/llamaCppProxy';
 import { StorageService } from '../services/storageService';
+import { OneDriveSyncService } from '../services/onedriveSyncService';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private proxy: LlamaCppProxy | null = null;
@@ -10,12 +11,14 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
     private dashboardService: DashboardService;
     private llamaCppClient: LlamaCppClient;
     private storageService: StorageService;
+    private onedriveSyncService: OneDriveSyncService | null = null;
     
-    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService) {
+    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService, onedriveSyncService: OneDriveSyncService | null = null) {
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
         this.storageService = storageService;
+        this.onedriveSyncService = onedriveSyncService;
     }
     
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -64,6 +67,12 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                 case 'stopLogMonitoring':
                     await vscode.commands.executeCommand('token-tracker.stopLogMonitoring');
                     break;
+                case 'syncToOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.syncToOneDrive');
+                    break;
+                case 'restoreFromOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.restoreFromOneDrive');
+                    break;
                 case 'updateCost':
                     await this.dashboardService.updateCost(
                         message.inputCostPerMillion,
@@ -102,6 +111,15 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'updateOneDrivePath':
+                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
+                    if (this._view) {
+                        this._view.webview.postMessage({
+                            command: 'onedrivePathUpdated',
+                            onedrivePath: message.onedrivePath
+                        });
+                    }
+                    break;
                 case 'refresh':
                     await this.refreshDashboard();
                     break;
@@ -120,15 +138,19 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get<string>('targetUrl', 'http://localhost:8080');
-
+        const onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get<string>('onedrivePath', '');
+ 
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
-
+ 
         // Get current model name
         const modelName = this.storageService.getCurrentModelName();
+        
+        // Get sync status
+        const syncStatus = this.onedriveSyncService ? this.onedriveSyncService.getSyncStatus() : null;
         
         // Send updated stats to webview
         this._view.webview.postMessage({
@@ -140,7 +162,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             proxyTargetUrl,
             connected,
             proxyRunning,
-            modelName
+            modelName,
+            syncStatus,
+            onedrivePath
         });
     }
     

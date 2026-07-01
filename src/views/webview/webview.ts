@@ -134,6 +134,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             <label for="onedrive-path">OneDrive Path</label>
                             <input type="text" id="onedrive-path" value="" placeholder="C:\\Users\\Username\\OneDrive">
                         </div>
+                        <div class="input-group">
+                            <label for="sync-interval">Automatic Sync Interval</label>
+                            <select id="sync-interval">
+                                <option value="0">Disabled</option>
+                                <option value="1">1 min</option>
+                                <option value="5">5 min</option>
+                                <option value="10">10 min</option>
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                            </select>
+                        </div>
                         <div class="sync-status">
                             <span class="sync-led" id="sync-led"></span>
                             <span id="sync-status-text">Sync status: Not synced</span>
@@ -194,6 +205,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') {
                     handleUpdateOneDrivePath();
                 }
+            });
+        }
+        
+        // Add event listener for sync interval select
+        const syncInterval = document.getElementById('sync-interval') as HTMLSelectElement;
+        if (syncInterval) {
+            syncInterval.addEventListener('change', () => {
+                handleUpdateSyncInterval();
             });
         }
     }
@@ -302,6 +321,19 @@ function handleUpdateOneDrivePath() {
     }
 }
 
+function handleUpdateSyncInterval() {
+    const syncIntervalEl = document.getElementById('sync-interval') as HTMLSelectElement;
+    
+    if (syncIntervalEl) {
+        const interval = parseInt(syncIntervalEl.value);
+        
+        vscode.postMessage({
+            command: 'updateSyncInterval',
+            interval: interval
+        });
+    }
+}
+
 function updateSyncStatus(syncStatus: any) {
     const syncLed = document.getElementById('sync-led');
     const syncStatusText = document.getElementById('sync-status-text');
@@ -334,6 +366,26 @@ function updateSyncStatus(syncStatus: any) {
         } else if (syncStatus && syncStatus.lastSyncSuccess) {
             syncInfoText.textContent = '';
         }
+    }
+}
+
+function updateSyncInterval(syncIntervals: { label: string; value: number }[], currentInterval: number) {
+    const syncIntervalEl = document.getElementById('sync-interval') as HTMLSelectElement;
+    
+    if (syncIntervalEl) {
+        // Clear existing options
+        syncIntervalEl.innerHTML = '';
+        
+        // Add options from syncIntervals
+        syncIntervals.forEach(interval => {
+            const option = document.createElement('option');
+            option.value = interval.value.toString();
+            option.textContent = interval.label;
+            syncIntervalEl.appendChild(option);
+        });
+        
+        // Set the selected value
+        syncIntervalEl.value = currentInterval.toString();
     }
 }
 
@@ -412,6 +464,9 @@ window.addEventListener('message', (event: MessageEvent) => {
             }
             if (message.syncStatus) {
                 updateSyncStatus(message.syncStatus);
+            }
+            if (message.syncIntervals && message.currentSyncInterval !== undefined) {
+                updateSyncInterval(message.syncIntervals, message.currentSyncInterval);
             }
             break;
             

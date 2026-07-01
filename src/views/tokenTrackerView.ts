@@ -69,9 +69,11 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                     break;
                 case 'syncToOneDrive':
                     await vscode.commands.executeCommand('token-tracker.syncToOneDrive');
+                    await this.refreshDashboard();
                     break;
                 case 'restoreFromOneDrive':
                     await vscode.commands.executeCommand('token-tracker.restoreFromOneDrive');
+                    await this.refreshDashboard();
                     break;
                 case 'updateCost':
                     await this.dashboardService.updateCost(

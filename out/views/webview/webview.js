@@ -114,14 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             
-            <div class="card">
-                <div class="card-title">Actions</div>
-                <button onclick="handleCommand('exportCsv')">Export CSV</button>
-                <button onclick="handleCommand('importCsv')">Import CSV</button>
-                <button class="secondary" onclick="handleCommand('resetSession')">Reset Session</button>
-                <button class="danger" onclick="handleCommand('clearHistory')">Clear History</button>
-            </div>
-            
             <div class="card collapsible">
                 <div class="card-title">OneDrive Sync</div>
                 <div class="card-content">
@@ -143,6 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Actions</div>
+                <button onclick="handleCommand('exportCsv')">Export CSV</button>
+                <button onclick="handleCommand('importCsv')">Import CSV</button>
+                <button class="secondary" onclick="handleCommand('resetSession')">Reset Session</button>
+                <button class="danger" onclick="handleCommand('clearHistory')">Clear History</button>
             </div>
         `;
         // Add event listener for Enter key in cost input fields

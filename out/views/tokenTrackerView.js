@@ -131,11 +131,13 @@ class TokenTrackerView {
                     }
                     break;
                 case 'updateOneDrivePath':
-                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
+                    // Escape backslashes for proper storage
+                    const onedrivePath = message.onedrivePath.replace(/\\/g, '\\\\');
+                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', onedrivePath, true);
                     if (this._view) {
                         this._view.webview.postMessage({
                             command: 'onedrivePathUpdated',
-                            onedrivePath: message.onedrivePath
+                            onedrivePath: onedrivePath
                         });
                     }
                     break;

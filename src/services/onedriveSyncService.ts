@@ -165,9 +165,11 @@ export class OneDriveSyncService {
     private getOneDrivePath(): string | null {
         // Check for user-configured OneDrive path
         const config = vscode.workspace.getConfiguration('tokenTracker');
-        const onedrivePath = config.get<string>('onedrivePath', '');
+        let onedrivePath = config.get<string>('onedrivePath', '');
         
         if (onedrivePath) {
+            // Unescape backslashes for proper path usage
+            onedrivePath = onedrivePath.replace(/\\\\/g, '\\');
             return onedrivePath;
         }
         

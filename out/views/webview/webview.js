@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="onedrive-settings">
                         <div class="input-group">
                             <label for="onedrive-path">OneDrive Path</label>
-                            <input type="text" id="onedrive-path" value="" placeholder="C:\Users\Username\OneDrive">
+                            <input type="text" id="onedrive-path" value="" placeholder="C:\\Users\\Username\\OneDrive">
                         </div>
                         <div class="sync-status">
                             <span class="sync-led" id="sync-led"></span>
@@ -261,7 +261,7 @@ function handleUpdateProxySettings() {
 function handleUpdateOneDrivePath() {
     const onedrivePathEl = document.getElementById('onedrive-path');
     if (onedrivePathEl) {
-        const onedrivePath = onedrivePathEl.value.trim();
+        const onedrivePath = onedrivePathEl.value.trim().replace(/\\/g, '\\\\');
         vscode.postMessage({
             command: 'updateOneDrivePath',
             onedrivePath: onedrivePath
@@ -372,7 +372,7 @@ window.addEventListener('message', (event) => {
             if (message.onedrivePath !== undefined) {
                 const onedrivePathEl = document.getElementById('onedrive-path');
                 if (onedrivePathEl)
-                    onedrivePathEl.value = message.onedrivePath || '';
+                    onedrivePathEl.value = (message.onedrivePath || '').replace(/\\\\/g, '\\');
             }
             if (message.syncStatus) {
                 updateSyncStatus(message.syncStatus);
@@ -399,7 +399,7 @@ window.addEventListener('message', (event) => {
             // Update the OneDrive path field with the new value
             const onedrivePathEl = document.getElementById('onedrive-path');
             if (onedrivePathEl) {
-                onedrivePathEl.value = message.onedrivePath || '';
+                onedrivePathEl.value = (message.onedrivePath || '').replace(/\\\\/g, '\\');
             }
             break;
         case 'proxyStatus':

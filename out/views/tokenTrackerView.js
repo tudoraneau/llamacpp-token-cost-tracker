@@ -56,6 +56,12 @@ class TokenTrackerView {
             ]
         };
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        // Set up sync status changed callback to notify webview
+        if (this.onedriveSyncService) {
+            this.onedriveSyncService.setSyncStatusChangedCallback((status) => {
+                this.notifyWebviewOfSyncStatusChange();
+            });
+        }
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
@@ -190,6 +196,20 @@ class TokenTrackerView {
             modelName,
             syncStatus,
             onedrivePath,
+            syncIntervals,
+            currentSyncInterval
+        });
+    }
+    notifyWebviewOfSyncStatusChange() {
+        if (!this._view || !this.onedriveSyncService) {
+            return;
+        }
+        const syncStatus = this.onedriveSyncService.getSyncStatus();
+        const syncIntervals = this.onedriveSyncService.getSyncIntervals();
+        const currentSyncInterval = this.onedriveSyncService.getSyncInterval();
+        this._view.webview.postMessage({
+            command: 'updateStats',
+            syncStatus,
             syncIntervals,
             currentSyncInterval
         });

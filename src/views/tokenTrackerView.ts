@@ -124,6 +124,13 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                         });
                     }
                     break;
+                case 'updateSyncInterval':
+                    console.log(`[TokenTrackerView] Received updateSyncInterval message with interval: ${message.interval}`);
+                    if (this.onedriveSyncService) {
+                        await this.onedriveSyncService.setSyncInterval(message.interval);
+                        await this.refreshDashboard();
+                    }
+                    break;
                 case 'refresh':
                     await this.refreshDashboard();
                     break;
@@ -155,6 +162,8 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         
         // Get sync status
         const syncStatus = this.onedriveSyncService ? this.onedriveSyncService.getSyncStatus() : null;
+        const syncIntervals = this.onedriveSyncService ? this.onedriveSyncService.getSyncIntervals() : [];
+        const currentSyncInterval = this.onedriveSyncService ? this.onedriveSyncService.getSyncInterval() : 0;
         
         // Send updated stats to webview
         this._view.webview.postMessage({
@@ -168,7 +177,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             proxyRunning,
             modelName,
             syncStatus,
-            onedrivePath
+            onedrivePath,
+            syncIntervals,
+            currentSyncInterval
         });
     }
     

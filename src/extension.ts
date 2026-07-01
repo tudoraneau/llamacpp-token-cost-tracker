@@ -100,6 +100,11 @@ export async function activate(context: vscode.ExtensionContext) {
                         await onedriveSyncService.syncFromOneDrive();
                     }
                 }),
+                vscode.commands.registerCommand('token-tracker.updateSyncInterval', async (interval: number) => {
+                    if (onedriveSyncService) {
+                        await onedriveSyncService.setSyncInterval(interval);
+                    }
+                }),
             ];
     
     // Add to extension context
@@ -172,6 +177,9 @@ export async function deactivate() {
     }
     if (proxy) {
         await proxy.stop();
+    }
+    if (onedriveSyncService) {
+        onedriveSyncService.stopAutoSync();
     }
 }
 

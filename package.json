@@ -164,6 +164,13 @@
           "type": "string",
           "default": "",
           "description": "Path to OneDrive folder for automatic sync"
+        },
+        "tokenTracker.syncInterval": {
+          "type": "number",
+          "default": 0,
+          "enum": [0, 1, 5, 10, 15, 30],
+          "enumDescriptions": ["Disabled", "1 minute", "5 minutes", "10 minutes", "15 minutes", "30 minutes"],
+          "description": "Automatic sync interval for OneDrive (in minutes)"
         }
       }
     }

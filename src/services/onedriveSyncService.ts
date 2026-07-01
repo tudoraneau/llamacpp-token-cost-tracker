@@ -8,6 +8,17 @@ export interface SyncStatus {
     lastSyncError: string | null;
 }
 
+export type SyncInterval = 1 | 5 | 10 | 15 | 30 | 0;
+
+export const SYNC_INTERVALS: { label: string; value: SyncInterval }[] = [
+    { label: '1 min', value: 1 },
+    { label: '5 min', value: 5 },
+    { label: '10 min', value: 10 },
+    { label: '15 min', value: 15 },
+    { label: '30 min', value: 30 },
+    { label: 'Disabled', value: 0 }
+];
+
 export class OneDriveSyncService {
     private context: vscode.ExtensionContext;
     private syncStatus: SyncStatus = {
@@ -15,10 +26,67 @@ export class OneDriveSyncService {
         lastSyncSuccess: false,
         lastSyncError: null
     };
+    private autoSyncTimer: NodeJS.Timeout | null = null;
     
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        console.log('[OneDriveSyncService] Constructor called, loading sync status and interval...');
         this.loadSyncStatus();
+        this.loadSyncInterval();
+    }
+    
+    private loadSyncInterval(): void {
+        const config = vscode.workspace.getConfiguration('tokenTracker');
+        const interval = config.get<number>('syncInterval', 0);
+        console.log(`[OneDriveSyncService] loadSyncInterval: interval = ${interval}`);
+        if (interval > 0) {
+            console.log(`[OneDriveSyncService] Starting auto-sync with interval ${interval} minutes`);
+            this.startAutoSync(interval);
+        } else {
+            console.log('[OneDriveSyncService] Auto-sync is disabled (interval <= 0)');
+        }
+    }
+    
+    public getSyncIntervals(): { label: string; value: number }[] {
+        return SYNC_INTERVALS;
+    }
+    
+    public getSyncInterval(): number {
+        const config = vscode.workspace.getConfiguration('tokenTracker');
+        return config.get<number>('syncInterval', 0);
+    }
+    
+    public async setSyncInterval(interval: number): Promise<void> {
+        console.log(`[OneDriveSyncService] setSyncInterval: setting interval to ${interval}`);
+        await vscode.workspace.getConfiguration('tokenTracker').update('syncInterval', interval, true);
+        console.log('[OneDriveSyncService] Configuration updated, reloading...');
+        
+        if (this.autoSyncTimer) {
+            clearTimeout(this.autoSyncTimer);
+            this.autoSyncTimer = null;
+        }
+        
+        if (interval > 0) {
+            console.log(`[OneDriveSyncService] Starting auto-sync with interval ${interval} minutes`);
+            this.startAutoSync(interval);
+        } else {
+            console.log('[OneDriveSyncService] Auto-sync disabled');
+        }
+    }
+    
+    private startAutoSync(intervalMinutes: number): void {
+        const intervalMs = intervalMinutes * 60 * 1000;
+        this.autoSyncTimer = setTimeout(async () => {
+            await this.syncToOneDrive();
+            this.startAutoSync(intervalMinutes);
+        }, intervalMs);
+    }
+    
+    public stopAutoSync(): void {
+        if (this.autoSyncTimer) {
+            clearTimeout(this.autoSyncTimer);
+            this.autoSyncTimer = null;
+        }
     }
     
     private loadSyncStatus(): void {
@@ -191,6 +259,11 @@ export class OneDriveSyncService {
         }
         
         return null;
+    }
+    
+    public getSyncIntervalLabel(interval: number): string {
+        const syncInterval = SYNC_INTERVALS.find(i => i.value === interval);
+        return syncInterval ? syncInterval.label : 'Disabled';
     }
 }
 

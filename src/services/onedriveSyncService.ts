@@ -27,12 +27,18 @@ export class OneDriveSyncService {
         lastSyncError: null
     };
     private autoSyncTimer: NodeJS.Timeout | null = null;
+    private onSyncStatusChanged?: (status: SyncStatus) => void;
     
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         console.log('[OneDriveSyncService] Constructor called, loading sync status and interval...');
         this.loadSyncStatus();
         this.loadSyncInterval();
+    }
+    
+    public setSyncStatusChangedCallback(callback: (status: SyncStatus) => void): void {
+        this.onSyncStatusChanged = callback;
+        console.log('[OneDriveSyncService] Sync status changed callback set');
     }
     
     private loadSyncInterval(): void {
@@ -109,6 +115,9 @@ export class OneDriveSyncService {
         this.syncStatus.lastSyncSuccess = true;
         this.syncStatus.lastSyncError = null;
         this.saveSyncStatus();
+        if (this.onSyncStatusChanged) {
+            this.onSyncStatusChanged(this.syncStatus);
+        }
     }
     
     public async setSyncFailure(error: string): Promise<void> {
@@ -116,6 +125,9 @@ export class OneDriveSyncService {
         this.syncStatus.lastSyncSuccess = false;
         this.syncStatus.lastSyncError = error;
         this.saveSyncStatus();
+        if (this.onSyncStatusChanged) {
+            this.onSyncStatusChanged(this.syncStatus);
+        }
     }
     
     public async syncToOneDrive(): Promise<void> {

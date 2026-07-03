@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { DashboardService } from '../services/dashboardService';
 import { LlamaCppClient } from '../services/llamaCppClient';
 import { LlamaCppProxy } from '../services/llamaCppProxy';
@@ -156,7 +158,12 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get<string>('targetUrl', 'http://localhost:8080');
-        const onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get<string>('onedrivePath', '');
+        let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get<string>('onedrivePath', '');
+        
+        // If onedrivePath is empty, try to detect the common OneDrive path
+        if (!onedrivePath) {
+            onedrivePath = this.detectOneDrivePath();
+        }
  
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
@@ -188,6 +195,26 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             syncIntervals,
             currentSyncInterval
         });
+    }
+    
+    private detectOneDrivePath(): string {
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        
+        const commonPaths = [
+            path.join(homeDir, 'OneDrive'),
+            path.join(homeDir, 'OneDrive - Personal'),
+            path.join(homeDir, 'OneDrive - Work'),
+            path.join(homeDir, 'OneDrive - School'),
+            path.join(homeDir, 'Documents', 'OneDrive')
+        ];
+        
+        for (const p of commonPaths) {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        }
+        
+        return '';
     }
     
     private notifyWebviewOfSyncStatusChange(): void {

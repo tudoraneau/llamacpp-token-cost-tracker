@@ -35,6 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
+const path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
 class TokenTrackerView {
     constructor(context, dashboardService, llamaCppClient, proxy, storageService, onedriveSyncService = null) {
         this.context = context;
@@ -172,7 +174,11 @@ class TokenTrackerView {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get('targetUrl', 'http://localhost:8080');
-        const onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get('onedrivePath', '');
+        let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get('onedrivePath', '');
+        // If onedrivePath is empty, try to detect the common OneDrive path
+        if (!onedrivePath) {
+            onedrivePath = this.detectOneDrivePath();
+        }
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         // Check proxy status
@@ -199,6 +205,22 @@ class TokenTrackerView {
             syncIntervals,
             currentSyncInterval
         });
+    }
+    detectOneDrivePath() {
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        const commonPaths = [
+            path.join(homeDir, 'OneDrive'),
+            path.join(homeDir, 'OneDrive - Personal'),
+            path.join(homeDir, 'OneDrive - Work'),
+            path.join(homeDir, 'OneDrive - School'),
+            path.join(homeDir, 'Documents', 'OneDrive')
+        ];
+        for (const p of commonPaths) {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        }
+        return '';
     }
     notifyWebviewOfSyncStatusChange() {
         if (!this._view || !this.onedriveSyncService) {

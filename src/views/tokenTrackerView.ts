@@ -123,13 +123,11 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                     }
                     break;
                 case 'updateOneDrivePath':
-                    // Escape backslashes for proper storage
-                    const onedrivePath = message.onedrivePath.replace(/\\/g, '\\\\');
-                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', onedrivePath, true);
+                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
                     if (this._view) {
                         this._view.webview.postMessage({
                             command: 'onedrivePathUpdated',
-                            onedrivePath: onedrivePath
+                            onedrivePath: message.onedrivePath
                         });
                     }
                     break;
@@ -160,10 +158,6 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get<string>('targetUrl', 'http://localhost:8080');
         let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get<string>('onedrivePath', '');
         
-        // If onedrivePath is empty, try to detect the common OneDrive path
-        if (!onedrivePath) {
-            onedrivePath = this.detectOneDrivePath();
-        }
  
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
@@ -195,26 +189,6 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             syncIntervals,
             currentSyncInterval
         });
-    }
-    
-    private detectOneDrivePath(): string {
-        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-        
-        const commonPaths = [
-            path.join(homeDir, 'OneDrive'),
-            path.join(homeDir, 'OneDrive - Personal'),
-            path.join(homeDir, 'OneDrive - Work'),
-            path.join(homeDir, 'OneDrive - School'),
-            path.join(homeDir, 'Documents', 'OneDrive')
-        ];
-        
-        for (const p of commonPaths) {
-            if (fs.existsSync(p)) {
-                return p;
-            }
-        }
-        
-        return '';
     }
     
     private notifyWebviewOfSyncStatusChange(): void {

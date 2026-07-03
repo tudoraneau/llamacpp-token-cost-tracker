@@ -119,8 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="card-content">
                     <div class="onedrive-settings">
                         <div class="input-group">
-                            <label for="onedrive-path">OneDrive Path</label>
-                            <input type="text" id="onedrive-path" value="" placeholder="C:\\Users\\Username\\OneDrive">
+                            <label for="onedrive-path">OneDrive Sync Path</label>
+                            <input type="text" id="onedrive-path" value="" placeholder="C:\\Users\\Username\\OneDrive\\token-tracker-sync.json">
+                            <button onclick="handleUpdateOneDrivePath()">Update Sync Path</button>
                         </div>
                         <div class="input-group">
                             <label for="sync-interval">Automatic Sync Interval</label>
@@ -178,15 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             serverUrl.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleUpdateServerUrl();
-                }
-            });
-        }
-        // Add event listener for OneDrive path input
-        const onedrivePath = document.getElementById('onedrive-path');
-        if (onedrivePath) {
-            onedrivePath.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleUpdateOneDrivePath();
                 }
             });
         }
@@ -279,7 +271,7 @@ function handleUpdateProxySettings() {
 function handleUpdateOneDrivePath() {
     const onedrivePathEl = document.getElementById('onedrive-path');
     if (onedrivePathEl) {
-        const onedrivePath = onedrivePathEl.value.trim().replace(/\\/g, '\\\\');
+        const onedrivePath = onedrivePathEl.value.trim();
         vscode.postMessage({
             command: 'updateOneDrivePath',
             onedrivePath: onedrivePath
@@ -416,7 +408,7 @@ window.addEventListener('message', (event) => {
             if (message.onedrivePath !== undefined) {
                 const onedrivePathEl = document.getElementById('onedrive-path');
                 if (onedrivePathEl)
-                    onedrivePathEl.value = (message.onedrivePath || '').replace(/\\\\/g, '\\');
+                    onedrivePathEl.value = message.onedrivePath || '';
             }
             if (message.syncStatus) {
                 updateSyncStatus(message.syncStatus);
@@ -446,7 +438,7 @@ window.addEventListener('message', (event) => {
             // Update the OneDrive path field with the new value
             const onedrivePathEl = document.getElementById('onedrive-path');
             if (onedrivePathEl) {
-                onedrivePathEl.value = (message.onedrivePath || '').replace(/\\\\/g, '\\');
+                onedrivePathEl.value = message.onedrivePath || '';
             }
             break;
         case 'proxyStatus':

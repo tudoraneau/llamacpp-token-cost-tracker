@@ -131,28 +131,28 @@ export class OneDriveSyncService {
     }
     
     public async syncToOneDrive(): Promise<void> {
-        const onedrivePath = this.getOneDrivePath();
+        const syncFilePath = this.getSyncFilePath();
         
-        if (!onedrivePath) {
-            await this.setSyncFailure('OneDrive path not configured. Please set it in the settings.');
-            throw new Error('OneDrive path not configured');
+        if (!syncFilePath) {
+            await this.setSyncFailure('OneDrive sync path not configured. Please set it in the settings.');
+            throw new Error('OneDrive sync path not configured');
         }
         
         try {
-            // Ensure the sync directory exists
-            if (!fs.existsSync(onedrivePath)) {
-                fs.mkdirSync(onedrivePath, { recursive: true });
+            // Ensure the directory containing the sync file exists
+            const dirPath = path.dirname(syncFilePath);
+            if (!fs.existsSync(dirPath)) {
+                fs.mkdirSync(dirPath, { recursive: true });
             }
             
             // Get all data to sync
             const data = await this.collectDataForSync();
             
-            // Write data to OneDrive
-            const syncFilePath = path.join(onedrivePath, 'token-tracker-sync.json');
+            // Write data to the sync file
             fs.writeFileSync(syncFilePath, JSON.stringify(data, null, 2));
             
-            // Write sync status file
-            const statusFilePath = path.join(onedrivePath, 'token-tracker-status.json');
+            // Write sync status file (next to the sync file)
+            const statusFilePath = syncFilePath.replace(/\.json$/, '-status.json');
             const statusData = {
                 lastSync: new Date().toISOString(),
                 success: true
@@ -169,19 +169,17 @@ export class OneDriveSyncService {
     }
     
     public async syncFromOneDrive(): Promise<void> {
-        const onedrivePath = this.getOneDrivePath();
+        const syncFilePath = this.getSyncFilePath();
         
-        if (!onedrivePath) {
-            await this.setSyncFailure('OneDrive path not configured. Please set it in the settings.');
-            throw new Error('OneDrive path not configured');
+        if (!syncFilePath) {
+            await this.setSyncFailure('OneDrive sync path not configured. Please set it in the settings.');
+            throw new Error('OneDrive sync path not configured');
         }
         
         try {
-            const syncFilePath = path.join(onedrivePath, 'token-tracker-sync.json');
-            
             if (!fs.existsSync(syncFilePath)) {
-                await this.setSyncFailure('No sync file found in OneDrive');
-                throw new Error('No sync file found in OneDrive');
+                await this.setSyncFailure('No sync file found at specified path');
+                throw new Error('No sync file found at specified path');
             }
             
             const data = JSON.parse(fs.readFileSync(syncFilePath, 'utf8'));
@@ -196,6 +194,13 @@ export class OneDriveSyncService {
             vscode.window.showErrorMessage(`Token Tracker: Failed to restore from OneDrive: ${error}`);
             throw error;
         }
+    }
+    
+    private getSyncFilePath(): string | null {
+        // Get the user-configured sync file path
+        const config = vscode.workspace.getConfiguration('tokenTracker');
+        const syncFilePath = config.get<string>('onedrivePath', '');
+        return syncFilePath || null;
     }
     
     private async collectDataForSync(): Promise<any> {
@@ -240,37 +245,6 @@ export class OneDriveSyncService {
         if (data.lifetimeStats) {
             await this.context.globalState.update('lifetimeStats', data.lifetimeStats);
         }
-    }
-    
-    private getOneDrivePath(): string | null {
-        // Check for user-configured OneDrive path
-        const config = vscode.workspace.getConfiguration('tokenTracker');
-        let onedrivePath = config.get<string>('onedrivePath', '');
-        
-        if (onedrivePath) {
-            // Unescape backslashes for proper path usage
-            onedrivePath = onedrivePath.replace(/\\\\/g, '\\');
-            return onedrivePath;
-        }
-        
-        // Try to detect common OneDrive paths
-        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-        
-        const commonPaths = [
-            path.join(homeDir, 'OneDrive'),
-            path.join(homeDir, 'OneDrive - Personal'),
-            path.join(homeDir, 'OneDrive - Work'),
-            path.join(homeDir, 'OneDrive - School'),
-            path.join(homeDir, 'Documents', 'OneDrive')
-        ];
-        
-        for (const p of commonPaths) {
-            if (fs.existsSync(p)) {
-                return p;
-            }
-        }
-        
-        return null;
     }
     
     public getSyncIntervalLabel(interval: number): string {

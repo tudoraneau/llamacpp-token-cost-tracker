@@ -35,8 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
-const fs = __importStar(require("fs"));
 class TokenTrackerView {
     constructor(context, dashboardService, llamaCppClient, proxy, storageService, onedriveSyncService = null) {
         this.context = context;
@@ -141,13 +139,11 @@ class TokenTrackerView {
                     }
                     break;
                 case 'updateOneDrivePath':
-                    // Escape backslashes for proper storage
-                    const onedrivePath = message.onedrivePath.replace(/\\/g, '\\\\');
-                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', onedrivePath, true);
+                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
                     if (this._view) {
                         this._view.webview.postMessage({
                             command: 'onedrivePathUpdated',
-                            onedrivePath: onedrivePath
+                            onedrivePath: message.onedrivePath
                         });
                     }
                     break;
@@ -175,10 +171,6 @@ class TokenTrackerView {
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get('targetUrl', 'http://localhost:8080');
         let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get('onedrivePath', '');
-        // If onedrivePath is empty, try to detect the common OneDrive path
-        if (!onedrivePath) {
-            onedrivePath = this.detectOneDrivePath();
-        }
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         // Check proxy status
@@ -205,22 +197,6 @@ class TokenTrackerView {
             syncIntervals,
             currentSyncInterval
         });
-    }
-    detectOneDrivePath() {
-        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-        const commonPaths = [
-            path.join(homeDir, 'OneDrive'),
-            path.join(homeDir, 'OneDrive - Personal'),
-            path.join(homeDir, 'OneDrive - Work'),
-            path.join(homeDir, 'OneDrive - School'),
-            path.join(homeDir, 'Documents', 'OneDrive')
-        ];
-        for (const p of commonPaths) {
-            if (fs.existsSync(p)) {
-                return p;
-            }
-        }
-        return '';
     }
     notifyWebviewOfSyncStatusChange() {
         if (!this._view || !this.onedriveSyncService) {

@@ -52,7 +52,8 @@ class TokenTrackerView {
             enableScripts: true,
             localResourceRoots: [
                 vscode.Uri.joinPath(this.context.extensionUri, 'out'),
-                vscode.Uri.joinPath(this.context.extensionUri, 'src')
+                vscode.Uri.joinPath(this.context.extensionUri, 'src'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'assets')
             ]
         };
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -232,6 +233,8 @@ class TokenTrackerView {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'out', 'views', 'webview', 'webview.js'));
         // Get the URI for the webview CSS
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src', 'views', 'webview', 'webview.css'));
+        // Get the URI for the logo
+        const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'logo.png'));
         return `<!DOCTYPE html>
  <html lang="en">
  <head>
@@ -242,6 +245,9 @@ class TokenTrackerView {
  </head>
  <body>
      <div class="container">
+         <div class="logo-container">
+             <img src="${logoUri}" alt="Token Tracker Logo" class="logo">
+         </div>
          <h1>llama.cpp Token Cost Tracker</h1>
          <div id="dashboard"></div>
      </div>

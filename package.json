@@ -1,6 +1,10 @@
 {
   "name": "llamacpp-token-cost-tracker",
   "publisher": "tudoraneau",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tudoraneau/llamacpp-token-cost-tracker.git"
+  },
   "displayName": "llama.cpp Token Cost Tracker",
   "description": "Track token usage and costs for local llama.cpp deployments",
   "version": "0.0.3",

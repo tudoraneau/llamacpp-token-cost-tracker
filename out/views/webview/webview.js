@@ -115,13 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             
             <div class="card collapsible">
-                <div class="card-title">OneDrive Sync</div>
+                <div class="card-title">Sync Settings</div>
                 <div class="card-content">
-                    <div class="onedrive-settings">
+                    <div class="sync-settings">
                         <div class="input-group">
-                            <label for="onedrive-path">OneDrive Sync Path</label>
-                            <input type="text" id="onedrive-path" value="" placeholder="C:\\Users\\Username\\OneDrive\\token-tracker-sync.json">
-                            <button onclick="handleUpdateOneDrivePath()">Update Sync Path</button>
+                            <label for="onedrive-path">Sync Path</label>
+                            <input type="text" id="sync-path" value="" placeholder="C:\\Users\\Username\\Sync\\token-tracker-sync.json">
+                            <button onclick="handleUpdateSyncPath()">Update Sync Path</button>
                         </div>
                         <div class="input-group">
                             <label for="sync-interval">Automatic Sync Interval</label>
@@ -139,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span id="sync-status-text">Sync status: Not synced</span>
                         </div>
                         <div class="sync-buttons">
-                            <button onclick="handleCommand('syncToOneDrive')">Sync to OneDrive</button>
-                            <button onclick="handleCommand('restoreFromOneDrive')">Restore from OneDrive</button>
+                            <button onclick="handleCommand('syncToOneDrive')">Sync</button>
+                            <button onclick="handleCommand('restoreFromOneDrive')">Restore</button>
                         </div>
                         <div class="sync-info">
                             <span id="sync-info-text"></span>
@@ -268,13 +268,13 @@ function handleUpdateProxySettings() {
         });
     }
 }
-function handleUpdateOneDrivePath() {
-    const onedrivePathEl = document.getElementById('onedrive-path');
-    if (onedrivePathEl) {
-        const onedrivePath = onedrivePathEl.value.trim();
+function handleUpdateSyncPath() {
+    const syncPathEl = document.getElementById('sync-path');
+    if (syncPathEl) {
+        const syncPath = syncPathEl.value.trim();
         vscode.postMessage({
             command: 'updateOneDrivePath',
-            onedrivePath: onedrivePath
+            syncPath: syncPath
         });
     }
 }
@@ -405,10 +405,10 @@ window.addEventListener('message', (event) => {
                 if (proxyTargetUrlEl)
                     proxyTargetUrlEl.value = message.proxyTargetUrl || '';
             }
-            if (message.onedrivePath !== undefined) {
-                const onedrivePathEl = document.getElementById('onedrive-path');
-                if (onedrivePathEl)
-                    onedrivePathEl.value = message.onedrivePath || '';
+            if (message.syncPath !== undefined) {
+                const syncPathEl = document.getElementById('sync-path');
+                if (syncPathEl)
+                    syncPathEl.value = message.syncPath || '';
             }
             if (message.syncStatus) {
                 updateSyncStatus(message.syncStatus);
@@ -435,10 +435,10 @@ window.addEventListener('message', (event) => {
             }
             break;
         case 'onedrivePathUpdated':
-            // Update the OneDrive path field with the new value
-            const onedrivePathEl = document.getElementById('onedrive-path');
-            if (onedrivePathEl) {
-                onedrivePathEl.value = message.onedrivePath || '';
+            // Update the sync path field with the new value
+            const syncPathEl2 = document.getElementById('sync-path');
+            if (syncPathEl2) {
+                syncPathEl2.value = message.syncPath || '';
             }
             break;
         case 'proxyStatus':

@@ -36,15 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenTrackerView = void 0;
 const vscode = __importStar(require("vscode"));
 class TokenTrackerView {
-    constructor(context, dashboardService, llamaCppClient, proxy, storageService, onedriveSyncService = null) {
+    constructor(context, dashboardService, llamaCppClient, proxy, storageService, syncService = null) {
         this.context = context;
         this.proxy = null;
-        this.onedriveSyncService = null;
+        this.syncService = null;
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
         this.storageService = storageService;
-        this.onedriveSyncService = onedriveSyncService;
+        this.syncService = syncService;
     }
     resolveWebviewView(webviewView) {
         this._view = webviewView;
@@ -57,8 +57,8 @@ class TokenTrackerView {
         };
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         // Set up sync status changed callback to notify webview
-        if (this.onedriveSyncService) {
-            this.onedriveSyncService.setSyncStatusChangedCallback((status) => {
+        if (this.syncService) {
+            this.syncService.setSyncStatusChangedCallback((status) => {
                 this.notifyWebviewOfSyncStatusChange();
             });
         }
@@ -139,18 +139,18 @@ class TokenTrackerView {
                     }
                     break;
                 case 'updateOneDrivePath':
-                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
+                    await vscode.workspace.getConfiguration('tokenTracker').update('syncPath', message.syncPath, true);
                     if (this._view) {
                         this._view.webview.postMessage({
                             command: 'onedrivePathUpdated',
-                            onedrivePath: message.onedrivePath
+                            syncPath: message.syncPath
                         });
                     }
                     break;
                 case 'updateSyncInterval':
                     console.log(`[TokenTrackerView] Received updateSyncInterval message with interval: ${message.interval}`);
-                    if (this.onedriveSyncService) {
-                        await this.onedriveSyncService.setSyncInterval(message.interval);
+                    if (this.syncService) {
+                        await this.syncService.setSyncInterval(message.interval);
                         await this.refreshDashboard();
                     }
                     break;
@@ -170,7 +170,7 @@ class TokenTrackerView {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get('targetUrl', 'http://localhost:8080');
-        let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get('onedrivePath', '');
+        let syncPath = vscode.workspace.getConfiguration('tokenTracker').get('syncPath', '');
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         // Check proxy status
@@ -178,9 +178,9 @@ class TokenTrackerView {
         // Get current model name
         const modelName = this.storageService.getCurrentModelName();
         // Get sync status
-        const syncStatus = this.onedriveSyncService ? this.onedriveSyncService.getSyncStatus() : null;
-        const syncIntervals = this.onedriveSyncService ? this.onedriveSyncService.getSyncIntervals() : [];
-        const currentSyncInterval = this.onedriveSyncService ? this.onedriveSyncService.getSyncInterval() : 0;
+        const syncStatus = this.syncService ? this.syncService.getSyncStatus() : null;
+        const syncIntervals = this.syncService ? this.syncService.getSyncIntervals() : [];
+        const currentSyncInterval = this.syncService ? this.syncService.getSyncInterval() : 0;
         // Send updated stats to webview
         this._view.webview.postMessage({
             command: 'updateStats',
@@ -193,21 +193,23 @@ class TokenTrackerView {
             proxyRunning,
             modelName,
             syncStatus,
-            onedrivePath,
+            syncPath,
             syncIntervals,
             currentSyncInterval
         });
     }
     notifyWebviewOfSyncStatusChange() {
-        if (!this._view || !this.onedriveSyncService) {
+        if (!this._view || !this.syncService) {
             return;
         }
-        const syncStatus = this.onedriveSyncService.getSyncStatus();
-        const syncIntervals = this.onedriveSyncService.getSyncIntervals();
-        const currentSyncInterval = this.onedriveSyncService.getSyncInterval();
+        const syncStatus = this.syncService.getSyncStatus();
+        const syncIntervals = this.syncService.getSyncIntervals();
+        const currentSyncInterval = this.syncService.getSyncInterval();
+        const syncPath = vscode.workspace.getConfiguration('tokenTracker').get('syncPath', '');
         this._view.webview.postMessage({
             command: 'updateStats',
             syncStatus,
+            syncPath,
             syncIntervals,
             currentSyncInterval
         });

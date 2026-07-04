@@ -19,7 +19,7 @@ export const SYNC_INTERVALS: { label: string; value: SyncInterval }[] = [
     { label: 'Disabled', value: 0 }
 ];
 
-export class OneDriveSyncService {
+export class SyncService {
     private context: vscode.ExtensionContext;
     private syncStatus: SyncStatus = {
         lastSync: null,
@@ -31,25 +31,25 @@ export class OneDriveSyncService {
     
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        console.log('[OneDriveSyncService] Constructor called, loading sync status and interval...');
+        console.log('[SyncService] Constructor called, loading sync status and interval...');
         this.loadSyncStatus();
         this.loadSyncInterval();
     }
     
     public setSyncStatusChangedCallback(callback: (status: SyncStatus) => void): void {
         this.onSyncStatusChanged = callback;
-        console.log('[OneDriveSyncService] Sync status changed callback set');
+        console.log('[SyncService] Sync status changed callback set');
     }
     
     private loadSyncInterval(): void {
         const config = vscode.workspace.getConfiguration('tokenTracker');
         const interval = config.get<number>('syncInterval', 0);
-        console.log(`[OneDriveSyncService] loadSyncInterval: interval = ${interval}`);
+        console.log(`[SyncService] loadSyncInterval: interval = ${interval}`);
         if (interval > 0) {
-            console.log(`[OneDriveSyncService] Starting auto-sync with interval ${interval} minutes`);
+            console.log(`[SyncService] Starting auto-sync with interval ${interval} minutes`);
             this.startAutoSync(interval);
         } else {
-            console.log('[OneDriveSyncService] Auto-sync is disabled (interval <= 0)');
+            console.log('[SyncService] Auto-sync is disabled (interval <= 0)');
         }
     }
     
@@ -63,9 +63,9 @@ export class OneDriveSyncService {
     }
     
     public async setSyncInterval(interval: number): Promise<void> {
-        console.log(`[OneDriveSyncService] setSyncInterval: setting interval to ${interval}`);
+        console.log(`[SyncService] setSyncInterval: setting interval to ${interval}`);
         await vscode.workspace.getConfiguration('tokenTracker').update('syncInterval', interval, true);
-        console.log('[OneDriveSyncService] Configuration updated, reloading...');
+        console.log('[SyncService] Configuration updated, reloading...');
         
         if (this.autoSyncTimer) {
             clearTimeout(this.autoSyncTimer);
@@ -73,17 +73,17 @@ export class OneDriveSyncService {
         }
         
         if (interval > 0) {
-            console.log(`[OneDriveSyncService] Starting auto-sync with interval ${interval} minutes`);
+            console.log(`[SyncService] Starting auto-sync with interval ${interval} minutes`);
             this.startAutoSync(interval);
         } else {
-            console.log('[OneDriveSyncService] Auto-sync disabled');
+            console.log('[SyncService] Auto-sync disabled');
         }
     }
     
     private startAutoSync(intervalMinutes: number): void {
         const intervalMs = intervalMinutes * 60 * 1000;
         this.autoSyncTimer = setTimeout(async () => {
-            await this.syncToOneDrive();
+            await this.sync();
             this.startAutoSync(intervalMinutes);
         }, intervalMs);
     }
@@ -96,14 +96,14 @@ export class OneDriveSyncService {
     }
     
     private loadSyncStatus(): void {
-        const savedStatus = this.context.globalState.get<SyncStatus>('onedriveSyncStatus');
+        const savedStatus = this.context.globalState.get<SyncStatus>('syncStatus');
         if (savedStatus) {
             this.syncStatus = savedStatus;
         }
     }
     
     private saveSyncStatus(): void {
-        this.context.globalState.update('onedriveSyncStatus', this.syncStatus);
+        this.context.globalState.update('syncStatus', this.syncStatus);
     }
     
     public getSyncStatus(): SyncStatus {
@@ -130,12 +130,12 @@ export class OneDriveSyncService {
         }
     }
     
-    public async syncToOneDrive(): Promise<void> {
+    public async sync(): Promise<void> {
         const syncFilePath = this.getSyncFilePath();
         
         if (!syncFilePath) {
-            await this.setSyncFailure('OneDrive sync path not configured. Please set it in the settings.');
-            throw new Error('OneDrive sync path not configured');
+            await this.setSyncFailure('Sync path not configured. Please set it in the settings.');
+            throw new Error('Sync path not configured');
         }
         
         try {
@@ -160,20 +160,20 @@ export class OneDriveSyncService {
             fs.writeFileSync(statusFilePath, JSON.stringify(statusData, null, 2));
             
             await this.setSyncSuccess();
-            vscode.window.showInformationMessage('Token Tracker: Data synced to OneDrive successfully');
+            vscode.window.showInformationMessage('Token Tracker: Data synced successfully');
         } catch (error) {
             await this.setSyncFailure(error instanceof Error ? error.message : String(error));
-            vscode.window.showErrorMessage(`Token Tracker: Failed to sync to OneDrive: ${error}`);
+            vscode.window.showErrorMessage(`Token Tracker: Failed to sync: ${error}`);
             throw error;
         }
     }
     
-    public async syncFromOneDrive(): Promise<void> {
+    public async restore(): Promise<void> {
         const syncFilePath = this.getSyncFilePath();
         
         if (!syncFilePath) {
-            await this.setSyncFailure('OneDrive sync path not configured. Please set it in the settings.');
-            throw new Error('OneDrive sync path not configured');
+            await this.setSyncFailure('Sync path not configured. Please set it in the settings.');
+            throw new Error('Sync path not configured');
         }
         
         try {
@@ -188,10 +188,10 @@ export class OneDriveSyncService {
             await this.restoreDataFromSync(data);
             
             await this.setSyncSuccess();
-            vscode.window.showInformationMessage('Token Tracker: Data restored from OneDrive successfully');
+            vscode.window.showInformationMessage('Token Tracker: Data restored successfully');
         } catch (error) {
             await this.setSyncFailure(error instanceof Error ? error.message : String(error));
-            vscode.window.showErrorMessage(`Token Tracker: Failed to restore from OneDrive: ${error}`);
+            vscode.window.showErrorMessage(`Token Tracker: Failed to restore: ${error}`);
             throw error;
         }
     }
@@ -199,7 +199,7 @@ export class OneDriveSyncService {
     private getSyncFilePath(): string | null {
         // Get the user-configured sync file path
         const config = vscode.workspace.getConfiguration('tokenTracker');
-        const syncFilePath = config.get<string>('onedrivePath', '');
+        const syncFilePath = config.get<string>('syncPath', '');
         return syncFilePath || null;
     }
     

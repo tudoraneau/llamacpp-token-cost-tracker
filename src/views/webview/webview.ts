@@ -126,6 +126,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             
+            <div class="card collapsible">
+                <div class="card-title">Sync Settings</div>
+                <div class="card-content">
+                    <div class="sync-settings">
+                        <div class="input-group">
+                            <label for="onedrive-path">Sync Path</label>
+                            <input type="text" id="sync-path" value="" placeholder="C:\\Users\\Username\\Sync\\token-tracker-sync.json">
+                            <button onclick="handleUpdateSyncPath()">Update Sync Path</button>
+                        </div>
+                        <div class="input-group">
+                            <label for="sync-interval">Automatic Sync Interval</label>
+                            <select id="sync-interval">
+                                <option value="0">Disabled</option>
+                                <option value="1">1 min</option>
+                                <option value="5">5 min</option>
+                                <option value="10">10 min</option>
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                            </select>
+                        </div>
+                        <div class="sync-status">
+                            <span class="sync-led" id="sync-led"></span>
+                            <span id="sync-status-text">Sync status: Not synced</span>
+                        </div>
+                        <div class="sync-buttons">
+                            <button onclick="handleCommand('syncToOneDrive')">Sync</button>
+                            <button onclick="handleCommand('restoreFromOneDrive')">Restore</button>
+                        </div>
+                        <div class="sync-info">
+                            <span id="sync-info-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-title">Actions</div>
                 <button onclick="handleCommand('exportCsv')">Export CSV</button>
@@ -161,6 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') {
                     handleUpdateServerUrl();
                 }
+            });
+        }
+        
+        // Add event listener for sync interval select
+        const syncInterval = document.getElementById('sync-interval') as HTMLSelectElement;
+        if (syncInterval) {
+            syncInterval.addEventListener('change', () => {
+                handleUpdateSyncInterval();
             });
         }
     }
@@ -256,6 +299,87 @@ function handleUpdateProxySettings() {
     }
 }
 
+function handleUpdateSyncPath() {
+    const syncPathEl = document.getElementById('sync-path') as HTMLInputElement;
+    
+    if (syncPathEl) {
+        const syncPath = syncPathEl.value.trim();
+        
+        vscode.postMessage({
+            command: 'updateOneDrivePath',
+            syncPath: syncPath
+        });
+    }
+}
+
+function handleUpdateSyncInterval() {
+    const syncIntervalEl = document.getElementById('sync-interval') as HTMLSelectElement;
+    
+    if (syncIntervalEl) {
+        const interval = parseInt(syncIntervalEl.value);
+        
+        vscode.postMessage({
+            command: 'updateSyncInterval',
+            interval: interval
+        });
+    }
+}
+
+function updateSyncStatus(syncStatus: any) {
+    const syncLed = document.getElementById('sync-led');
+    const syncStatusText = document.getElementById('sync-status-text');
+    const syncInfoText = document.getElementById('sync-info-text');
+    
+    if (syncLed) {
+        if (syncStatus && syncStatus.lastSyncSuccess) {
+            syncLed.className = 'sync-led sync-success';
+        } else if (syncStatus && syncStatus.lastSync) {
+            syncLed.className = 'sync-led sync-failure';
+        } else {
+            syncLed.className = 'sync-led sync-neutral';
+        }
+    }
+    
+    if (syncStatusText) {
+        if (syncStatus && syncStatus.lastSync) {
+            const date = new Date(syncStatus.lastSync);
+            const formattedDate = date.toLocaleString();
+            syncStatusText.textContent = `Sync status: ${syncStatus.lastSyncSuccess ? 'Last sync successful' : 'Last sync failed'} - ${formattedDate}`;
+        } else {
+            syncStatusText.textContent = 'Sync status: Not synced';
+        }
+    }
+    
+    if (syncInfoText) {
+        if (syncStatus && syncStatus.lastSyncError) {
+            syncInfoText.textContent = `Error: ${syncStatus.lastSyncError}`;
+            syncInfoText.style.color = '#dc3545';
+        } else if (syncStatus && syncStatus.lastSyncSuccess) {
+            syncInfoText.textContent = '';
+        }
+    }
+}
+
+function updateSyncInterval(syncIntervals: { label: string; value: number }[], currentInterval: number) {
+    const syncIntervalEl = document.getElementById('sync-interval') as HTMLSelectElement;
+    
+    if (syncIntervalEl) {
+        // Clear existing options
+        syncIntervalEl.innerHTML = '';
+        
+        // Add options from syncIntervals
+        syncIntervals.forEach(interval => {
+            const option = document.createElement('option');
+            option.value = interval.value.toString();
+            option.textContent = interval.label;
+            syncIntervalEl.appendChild(option);
+        });
+        
+        // Set the selected value
+        syncIntervalEl.value = currentInterval.toString();
+    }
+}
+
 function updateProxyStatus(isRunning: boolean) {
     const proxyLed = document.getElementById('proxy-led');
     const proxyStatusText = document.getElementById('proxy-status-text');
@@ -324,6 +448,17 @@ window.addEventListener('message', (event: MessageEvent) => {
                 
                 if (proxyTargetUrlEl) proxyTargetUrlEl.value = message.proxyTargetUrl || '';
             }
+            if (message.syncPath !== undefined) {
+                const syncPathEl = document.getElementById('sync-path') as HTMLInputElement;
+                
+                if (syncPathEl) syncPathEl.value = message.syncPath || '';
+            }
+            if (message.syncStatus) {
+                updateSyncStatus(message.syncStatus);
+            }
+            if (message.syncIntervals && message.currentSyncInterval !== undefined) {
+                updateSyncInterval(message.syncIntervals, message.currentSyncInterval);
+            }
             break;
             
         case 'updateCostSettings':
@@ -341,6 +476,14 @@ window.addEventListener('message', (event: MessageEvent) => {
             const serverUrlEl = document.getElementById('server-url') as HTMLInputElement;
             if (serverUrlEl) {
                 serverUrlEl.value = message.serverUrl || '';
+            }
+            break;
+            
+        case 'onedrivePathUpdated':
+            // Update the sync path field with the new value
+            const syncPathEl2 = document.getElementById('sync-path') as HTMLInputElement;
+            if (syncPathEl2) {
+                syncPathEl2.value = message.syncPath || '';
             }
             break;
             

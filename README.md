@@ -3,6 +3,10 @@
 Provide token usage and estimated costs for llama.cpp deployments. Also useful for estimating savings when using local LLMs :)
 The extension acts as a HTTP proxy to intercept activity from other extensions that interact with llama.cpp such as RooCode, Continue, etc.
 
+## Source Code
+
+[github.com/tudoraneau/llamacpp-token-cost-tracker](https://github.com/tudoraneau/llamacpp-token-cost-tracker)
+
 # Disclaimer
 
 Use at your own risk, no warranties provided, express or implied.

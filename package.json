@@ -1,9 +1,13 @@
 {
   "name": "llamacpp-token-cost-tracker",
   "publisher": "tudoraneau",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tudoraneau/llamacpp-token-cost-tracker.git"
+  },
   "displayName": "llama.cpp Token Cost Tracker",
   "description": "Track token usage and costs for local llama.cpp deployments",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -14,6 +18,7 @@
       "onStartupFinished",
       "onView:token-tracker-view"
     ],
+  "icon": "assets/logo.png",
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -60,6 +65,14 @@
       {
         "command": "token-tracker.stopLogMonitoring",
         "title": "Token Tracker: Stop Log Monitoring"
+      },
+      {
+        "command": "token-tracker.syncToOneDrive",
+        "title": "Token Tracker: Sync"
+      },
+      {
+        "command": "token-tracker.restoreFromOneDrive",
+        "title": "Token Tracker: Restore"
       }
     ],
     "viewsContainers": {
@@ -151,6 +164,18 @@
           "type": "string",
           "default": "",
           "description": "Path to log file for monitoring"
+        },
+        "tokenTracker.syncPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to sync folder for automatic sync"
+        },
+        "tokenTracker.syncInterval": {
+          "type": "number",
+          "default": 0,
+          "enum": [0, 1, 5, 10, 15, 30],
+          "enumDescriptions": ["Disabled", "1 minute", "5 minutes", "10 minutes", "15 minutes", "30 minutes"],
+          "description": "Automatic sync interval (in minutes)"
         }
       }
     }

@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { DashboardService } from '../services/dashboardService';
 import { LlamaCppClient } from '../services/llamaCppClient';
 import { LlamaCppProxy } from '../services/llamaCppProxy';
 import { StorageService } from '../services/storageService';
+import { SyncService } from '../services/syncService';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private proxy: LlamaCppProxy | null = null;
@@ -10,12 +13,14 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
     private dashboardService: DashboardService;
     private llamaCppClient: LlamaCppClient;
     private storageService: StorageService;
+    private syncService: SyncService | null = null;
     
-    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService) {
+    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService, syncService: SyncService | null = null) {
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
         this.storageService = storageService;
+        this.syncService = syncService;
     }
     
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -25,11 +30,19 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             enableScripts: true,
             localResourceRoots: [
                 vscode.Uri.joinPath(this.context.extensionUri, 'out'),
-                vscode.Uri.joinPath(this.context.extensionUri, 'src')
+                vscode.Uri.joinPath(this.context.extensionUri, 'src'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'assets')
             ]
         };
         
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        
+        // Set up sync status changed callback to notify webview
+        if (this.syncService) {
+            this.syncService.setSyncStatusChangedCallback((status) => {
+                this.notifyWebviewOfSyncStatusChange();
+            });
+        }
         
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -63,6 +76,14 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                     break;
                 case 'stopLogMonitoring':
                     await vscode.commands.executeCommand('token-tracker.stopLogMonitoring');
+                    break;
+                case 'syncToOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.syncToOneDrive');
+                    await this.refreshDashboard();
+                    break;
+                case 'restoreFromOneDrive':
+                    await vscode.commands.executeCommand('token-tracker.restoreFromOneDrive');
+                    await this.refreshDashboard();
                     break;
                 case 'updateCost':
                     await this.dashboardService.updateCost(
@@ -102,6 +123,22 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'updateOneDrivePath':
+                    await vscode.workspace.getConfiguration('tokenTracker').update('syncPath', message.syncPath, true);
+                    if (this._view) {
+                        this._view.webview.postMessage({
+                            command: 'onedrivePathUpdated',
+                            syncPath: message.syncPath
+                        });
+                    }
+                    break;
+                case 'updateSyncInterval':
+                    console.log(`[TokenTrackerView] Received updateSyncInterval message with interval: ${message.interval}`);
+                    if (this.syncService) {
+                        await this.syncService.setSyncInterval(message.interval);
+                        await this.refreshDashboard();
+                    }
+                    break;
                 case 'refresh':
                     await this.refreshDashboard();
                     break;
@@ -120,15 +157,22 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get<string>('targetUrl', 'http://localhost:8080');
-
+        let syncPath = vscode.workspace.getConfiguration('tokenTracker').get<string>('syncPath', '');
+        
+ 
         // Check connection status
         const connected = await this.llamaCppClient.isConnected();
         
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
-
+ 
         // Get current model name
         const modelName = this.storageService.getCurrentModelName();
+        
+        // Get sync status
+        const syncStatus = this.syncService ? this.syncService.getSyncStatus() : null;
+        const syncIntervals = this.syncService ? this.syncService.getSyncIntervals() : [];
+        const currentSyncInterval = this.syncService ? this.syncService.getSyncInterval() : 0;
         
         // Send updated stats to webview
         this._view.webview.postMessage({
@@ -140,7 +184,30 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             proxyTargetUrl,
             connected,
             proxyRunning,
-            modelName
+            modelName,
+            syncStatus,
+            syncPath,
+            syncIntervals,
+            currentSyncInterval
+        });
+    }
+    
+    private notifyWebviewOfSyncStatusChange(): void {
+        if (!this._view || !this.syncService) {
+            return;
+        }
+        
+        const syncStatus = this.syncService.getSyncStatus();
+        const syncIntervals = this.syncService.getSyncIntervals();
+        const currentSyncInterval = this.syncService.getSyncInterval();
+        const syncPath = vscode.workspace.getConfiguration('tokenTracker').get<string>('syncPath', '');
+        
+        this._view.webview.postMessage({
+            command: 'updateStats',
+            syncStatus,
+            syncPath,
+            syncIntervals,
+            currentSyncInterval
         });
     }
     
@@ -167,6 +234,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         // Get the URI for the webview CSS
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src', 'views', 'webview', 'webview.css'));
         
+        // Get the URI for the logo
+        const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'logo.png'));
+        
         return `<!DOCTYPE html>
  <html lang="en">
  <head>
@@ -177,6 +247,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
  </head>
  <body>
      <div class="container">
+         <div class="logo-container">
+             <img src="${logoUri}" alt="Token Tracker Logo" class="logo">
+         </div>
          <h1>llama.cpp Token Cost Tracker</h1>
          <div id="dashboard"></div>
      </div>

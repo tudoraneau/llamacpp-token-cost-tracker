@@ -7,9 +7,11 @@ import { LlamaCppClient } from './services/llamaCppClient';
 import { LlamaCppProxy } from './services/llamaCppProxy';
 import { LlamaCppUsageMonitor } from './services/llamaCppUsageMonitor';
 import { TokenTrackerView } from './views/tokenTrackerView';
+import { SyncService } from './services/syncService';
 
 let usageMonitor: LlamaCppUsageMonitor | null = null;
 let proxy: LlamaCppProxy | null = null;
+let syncService: SyncService | null = null;
 
 const PROXY_PORT = 8081;
 const LLAMA_CPP_DEFAULT_PORT = 8080;
@@ -19,6 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const pricingService = new PricingService(storageService);
     const statisticsService = new StatisticsService(storageService);
     const dashboardService = new DashboardService(storageService, statisticsService);
+    syncService = new SyncService(context);
     
     // Get configuration
         const llamaCppConfig = vscode.workspace.getConfiguration('tokenTracker.llamaCpp');
@@ -53,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     
     // Create views
-    const tokenTrackerView = new TokenTrackerView(context, dashboardService, client, proxy, storageService);
+    const tokenTrackerView = new TokenTrackerView(context, dashboardService, client, proxy, storageService, syncService);
     
     // Register webview view provider
     context.subscriptions.push(
@@ -81,13 +84,28 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
         }),
                 vscode.commands.registerCommand('token-tracker.stopLogMonitoring', () => {
-            if (usageMonitor) {
-                usageMonitor.stop();
-                usageMonitor = null;
-                vscode.window.showInformationMessage('Log monitoring stopped.');
-            }
-        }),
-    ];
+                    if (usageMonitor) {
+                        usageMonitor.stop();
+                        usageMonitor = null;
+                        vscode.window.showInformationMessage('Log monitoring stopped.');
+                    }
+                }),
+                vscode.commands.registerCommand('token-tracker.syncToOneDrive', async () => {
+                    if (syncService) {
+                        await syncService.sync();
+                    }
+                }),
+                vscode.commands.registerCommand('token-tracker.restoreFromOneDrive', async () => {
+                    if (syncService) {
+                        await syncService.restore();
+                    }
+                }),
+                vscode.commands.registerCommand('token-tracker.updateSyncInterval', async (interval: number) => {
+                    if (syncService) {
+                        await syncService.setSyncInterval(interval);
+                    }
+                }),
+            ];
     
     // Add to extension context
     context.subscriptions.push(...commands, tokenTrackerView);
@@ -159,6 +177,9 @@ export async function deactivate() {
     }
     if (proxy) {
         await proxy.stop();
+    }
+    if (syncService) {
+        syncService.stopAutoSync();
     }
 }
 

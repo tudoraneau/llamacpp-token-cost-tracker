@@ -285,7 +285,7 @@ button.danger:hover {
     font-size: 0.85em;
 }
 
-.onedrive-settings {
+.sync-settings {
     display: flex;
     flex-direction: column;
     gap: 15px;

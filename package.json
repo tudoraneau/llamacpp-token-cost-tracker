@@ -63,11 +63,11 @@
       },
       {
         "command": "token-tracker.syncToOneDrive",
-        "title": "Token Tracker: Sync to OneDrive"
+        "title": "Token Tracker: Sync"
       },
       {
         "command": "token-tracker.restoreFromOneDrive",
-        "title": "Token Tracker: Restore from OneDrive"
+        "title": "Token Tracker: Restore"
       }
     ],
     "viewsContainers": {
@@ -160,17 +160,17 @@
           "default": "",
           "description": "Path to log file for monitoring"
         },
-        "tokenTracker.onedrivePath": {
+        "tokenTracker.syncPath": {
           "type": "string",
           "default": "",
-          "description": "Path to OneDrive folder for automatic sync"
+          "description": "Path to sync folder for automatic sync"
         },
         "tokenTracker.syncInterval": {
           "type": "number",
           "default": 0,
           "enum": [0, 1, 5, 10, 15, 30],
           "enumDescriptions": ["Disabled", "1 minute", "5 minutes", "10 minutes", "15 minutes", "30 minutes"],
-          "description": "Automatic sync interval for OneDrive (in minutes)"
+          "description": "Automatic sync interval (in minutes)"
         }
       }
     }

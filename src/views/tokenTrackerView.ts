@@ -5,7 +5,7 @@ import { DashboardService } from '../services/dashboardService';
 import { LlamaCppClient } from '../services/llamaCppClient';
 import { LlamaCppProxy } from '../services/llamaCppProxy';
 import { StorageService } from '../services/storageService';
-import { OneDriveSyncService } from '../services/onedriveSyncService';
+import { SyncService } from '../services/syncService';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private proxy: LlamaCppProxy | null = null;
@@ -13,14 +13,14 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
     private dashboardService: DashboardService;
     private llamaCppClient: LlamaCppClient;
     private storageService: StorageService;
-    private onedriveSyncService: OneDriveSyncService | null = null;
+    private syncService: SyncService | null = null;
     
-    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService, onedriveSyncService: OneDriveSyncService | null = null) {
+    constructor(private context: vscode.ExtensionContext, dashboardService: DashboardService, llamaCppClient: LlamaCppClient, proxy: LlamaCppProxy, storageService: StorageService, syncService: SyncService | null = null) {
         this.dashboardService = dashboardService;
         this.llamaCppClient = llamaCppClient;
         this.proxy = proxy;
         this.storageService = storageService;
-        this.onedriveSyncService = onedriveSyncService;
+        this.syncService = syncService;
     }
     
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -37,8 +37,8 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         
         // Set up sync status changed callback to notify webview
-        if (this.onedriveSyncService) {
-            this.onedriveSyncService.setSyncStatusChangedCallback((status) => {
+        if (this.syncService) {
+            this.syncService.setSyncStatusChangedCallback((status) => {
                 this.notifyWebviewOfSyncStatusChange();
             });
         }
@@ -123,18 +123,18 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
                     }
                     break;
                 case 'updateOneDrivePath':
-                    await vscode.workspace.getConfiguration('tokenTracker').update('onedrivePath', message.onedrivePath, true);
+                    await vscode.workspace.getConfiguration('tokenTracker').update('syncPath', message.syncPath, true);
                     if (this._view) {
                         this._view.webview.postMessage({
                             command: 'onedrivePathUpdated',
-                            onedrivePath: message.onedrivePath
+                            syncPath: message.syncPath
                         });
                     }
                     break;
                 case 'updateSyncInterval':
                     console.log(`[TokenTrackerView] Received updateSyncInterval message with interval: ${message.interval}`);
-                    if (this.onedriveSyncService) {
-                        await this.onedriveSyncService.setSyncInterval(message.interval);
+                    if (this.syncService) {
+                        await this.syncService.setSyncInterval(message.interval);
                         await this.refreshDashboard();
                     }
                     break;
@@ -156,7 +156,7 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const costSettings = await this.dashboardService.getCurrentCostSettings();
         const serverUrl = vscode.workspace.getConfiguration('tokenTracker.llamaCpp').get<string>('serverUrl', 'http://localhost:8080');
         const proxyTargetUrl = vscode.workspace.getConfiguration('tokenTracker.proxy').get<string>('targetUrl', 'http://localhost:8080');
-        let onedrivePath = vscode.workspace.getConfiguration('tokenTracker').get<string>('onedrivePath', '');
+        let syncPath = vscode.workspace.getConfiguration('tokenTracker').get<string>('syncPath', '');
         
  
         // Check connection status
@@ -169,9 +169,9 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         const modelName = this.storageService.getCurrentModelName();
         
         // Get sync status
-        const syncStatus = this.onedriveSyncService ? this.onedriveSyncService.getSyncStatus() : null;
-        const syncIntervals = this.onedriveSyncService ? this.onedriveSyncService.getSyncIntervals() : [];
-        const currentSyncInterval = this.onedriveSyncService ? this.onedriveSyncService.getSyncInterval() : 0;
+        const syncStatus = this.syncService ? this.syncService.getSyncStatus() : null;
+        const syncIntervals = this.syncService ? this.syncService.getSyncIntervals() : [];
+        const currentSyncInterval = this.syncService ? this.syncService.getSyncInterval() : 0;
         
         // Send updated stats to webview
         this._view.webview.postMessage({
@@ -185,24 +185,26 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             proxyRunning,
             modelName,
             syncStatus,
-            onedrivePath,
+            syncPath,
             syncIntervals,
             currentSyncInterval
         });
     }
     
     private notifyWebviewOfSyncStatusChange(): void {
-        if (!this._view || !this.onedriveSyncService) {
+        if (!this._view || !this.syncService) {
             return;
         }
         
-        const syncStatus = this.onedriveSyncService.getSyncStatus();
-        const syncIntervals = this.onedriveSyncService.getSyncIntervals();
-        const currentSyncInterval = this.onedriveSyncService.getSyncInterval();
+        const syncStatus = this.syncService.getSyncStatus();
+        const syncIntervals = this.syncService.getSyncIntervals();
+        const currentSyncInterval = this.syncService.getSyncInterval();
+        const syncPath = vscode.workspace.getConfiguration('tokenTracker').get<string>('syncPath', '');
         
         this._view.webview.postMessage({
             command: 'updateStats',
             syncStatus,
+            syncPath,
             syncIntervals,
             currentSyncInterval
         });

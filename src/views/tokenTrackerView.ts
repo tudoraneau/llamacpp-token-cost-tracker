@@ -9,6 +9,7 @@ import { SyncService } from '../services/syncService';
 
 export class TokenTrackerView implements vscode.WebviewViewProvider {
     private proxy: LlamaCppProxy | null = null;
+    private proxyError: string | null = null;
     private _view?: vscode.WebviewView;
     private dashboardService: DashboardService;
     private llamaCppClient: LlamaCppClient;
@@ -165,7 +166,8 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         
         // Check proxy status
         const proxyRunning = this.proxy ? this.proxy.isRunning() : false;
- 
+        const proxyStatus = proxyRunning ? 'running' : (this.proxyError ? 'error' : 'stopped');
+  
         // Get current model name
         const modelName = this.storageService.getCurrentModelName();
         
@@ -184,6 +186,8 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             proxyTargetUrl,
             connected,
             proxyRunning,
+            proxyError: this.proxyError,
+            proxyStatus,
             modelName,
             syncStatus,
             syncPath,
@@ -265,13 +269,19 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
         
         if (this.proxy.isRunning()) {
             await this.proxy.stop();
-            this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: false });
+            this.proxyError = null;
+            this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: false, proxyError: null, proxyStatus: 'stopped' });
         } else {
             try {
                 await this.proxy.start();
-                this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: true });
+                this.proxyError = null;
+                this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: true, proxyError: null, proxyStatus: 'running' });
             } catch (error) {
-                vscode.window.showErrorMessage('Failed to start proxy: ' + error);
+                // Only set error if there isn't already one (don't clear existing error)
+                if (!this.proxyError) {
+                    this.proxyError = (error as Error).message;
+                }
+                this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: false, proxyError: this.proxyError, proxyStatus: 'error' });
             }
         }
     }
@@ -289,10 +299,17 @@ export class TokenTrackerView implements vscode.WebviewViewProvider {
             await vscode.workspace.getConfiguration('tokenTracker.proxy').update('targetUrl', serverUrl, true);
             
             await this.proxy.start();
-            this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: true });
+            this.proxyError = null;
+            this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: true, proxyError: null, proxyStatus: 'running' });
             this._view?.webview.postMessage({ command: 'serverUrlUpdated', serverUrl: serverUrl });
         } catch (error) {
-            vscode.window.showErrorMessage('Failed to update proxy settings: ' + error);
+            this.proxyError = (error as Error).message;
+            this._view?.webview.postMessage({ command: 'proxyStatus', isRunning: false, proxyError: (error as Error).message, proxyStatus: 'error' });
         }
+    }
+    
+    public setProxyError(error: string | null) {
+        this.proxyError = error;
+        this.refreshDashboard();
     }
 }

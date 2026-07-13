@@ -32,17 +32,15 @@ export async function activate(context: vscode.ExtensionContext) {
         const proxyConfig = vscode.workspace.getConfiguration('tokenTracker.proxy');
         const proxyTargetUrl = proxyConfig.get<string>('targetUrl', 'http://localhost:8080');
     
-        // Start proxy to intercept and track requests
+        // Initialize proxy (will start in background, errors shown in Web UI)
         proxy = new LlamaCppProxy(PROXY_PORT, proxyTargetUrl);
         proxy.setServices(storageService, statisticsService, pricingService);
     
-        try {
-            await proxy.start();
-        } catch (error) {
-            console.error('[TokenTracker] Failed to start proxy:', error);
-            vscode.window.showErrorMessage('Token Tracker: Failed to start proxy. Please check if port ' + PROXY_PORT + ' is available.');
-            return;
-        }
+        // Start proxy in background (non-blocking)
+        proxy.start().catch((error) => {
+            console.error('[TokenTracker] Proxy failed to start:', error);
+            tokenTrackerView.setProxyError((error as Error).message);
+        });
     
         // Initialize client with services for token tracking - route through proxy
         const client = new LlamaCppClient(proxy.getProxyUrl(), requestTimeoutMs);

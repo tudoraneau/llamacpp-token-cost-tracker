@@ -13,14 +13,6 @@ export class LlamaCppUsageMonitor {
     
     constructor(logPath: string) {
         this.logPath = logPath;
-        
-        // Initialize services - pass context from extension
-        const ext = vscode.extensions.getExtension('felix.token-cost-tracker');
-        if (ext) {
-            // Note: extensionContext is not directly accessible, services should be injected
-            this.storageService = null;
-            this.statisticsService = null;
-        }
     }
 
     public setServices(storageService: StorageService, statisticsService: StatisticsService) {

@@ -239,6 +239,34 @@ button.danger:hover {
     gap: 10px;
 }
 
+/* Proxy warning message */
+.proxy-warning {
+    color: #888;
+    font-size: 0.85em;
+    margin-top: 5px;
+    padding: 5px;
+}
+
+.proxy-warning.warning {
+    color: #ffaa00;
+    background-color: rgba(255, 170, 0, 0.1);
+    border-radius: 3px;
+}
+
+/* Proxy error message */
+.proxy-error {
+    color: #888;
+    font-size: 0.85em;
+    margin-top: 5px;
+    padding: 5px;
+}
+
+.proxy-error.error {
+    color: #ff4444;
+    background-color: rgba(255, 68, 68, 0.1);
+    border-radius: 3px;
+}
+
 /* Sync LED indicator */
 .sync-led {
     width: 12px;

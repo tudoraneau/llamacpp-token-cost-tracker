@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span id="proxy-status-text">Proxy: Stopped</span>
                     <button onclick="handleCommand('toggleProxy')" id="proxy-toggle-btn">Start Proxy</button>
                 </div>
+                <div class="proxy-warning" id="proxy-warning"></div>
+                <div class="proxy-error" id="proxy-error"></div>
             </div>
             
             <div class="card collapsible">
@@ -380,21 +382,51 @@ function updateSyncInterval(syncIntervals: { label: string; value: number }[], c
     }
 }
 
-function updateProxyStatus(isRunning: boolean) {
+function updateProxyStatus(isRunning: boolean, errorMessage?: string, proxyStatus?: 'running' | 'stopped' | 'error') {
     const proxyLed = document.getElementById('proxy-led');
     const proxyStatusText = document.getElementById('proxy-status-text');
     const proxyToggleBtn = document.getElementById('proxy-toggle-btn');
+    const proxyWarning = document.getElementById('proxy-warning');
+    const proxyError = document.getElementById('proxy-error');
     
     if (proxyLed) {
         proxyLed.className = 'proxy-led ' + (isRunning ? 'running' : 'stopped');
     }
     
     if (proxyStatusText) {
-        proxyStatusText.textContent = 'Proxy: ' + (isRunning ? 'Running' : 'Stopped');
+        if (proxyStatus === 'error') {
+            proxyStatusText.textContent = 'Proxy: Not Running';
+        } else {
+            proxyStatusText.textContent = 'Proxy: ' + (isRunning ? 'Running' : 'Stopped');
+        }
     }
     
     if (proxyToggleBtn) {
-        proxyToggleBtn.textContent = isRunning ? 'Stop Proxy' : 'Start Proxy';
+        if (proxyStatus === 'error') {
+            proxyToggleBtn.textContent = 'Retry Proxy';
+        } else {
+            proxyToggleBtn.textContent = isRunning ? 'Stop Proxy' : 'Start Proxy';
+        }
+    }
+    
+    if (proxyWarning) {
+        if (!isRunning) {
+            proxyWarning.textContent = '⚠️ No statistics will be captured while proxy is stopped';
+            proxyWarning.className = 'proxy-warning warning';
+        } else {
+            proxyWarning.textContent = '';
+            proxyWarning.className = 'proxy-warning';
+        }
+    }
+    
+    if (proxyError) {
+        if (errorMessage) {
+            proxyError.textContent = errorMessage;
+            proxyError.className = 'proxy-error error';
+        } else {
+            proxyError.textContent = '';
+            proxyError.className = 'proxy-error';
+        }
     }
 }
 
@@ -410,7 +442,7 @@ window.addEventListener('message', (event: MessageEvent) => {
             
             // Update proxy status
             if (typeof message.proxyRunning === 'boolean') {
-                updateProxyStatus(message.proxyRunning);
+                updateProxyStatus(message.proxyRunning, message.proxyError, message.proxyStatus);
             }
             
             if (message.sessionStats) {
@@ -488,7 +520,7 @@ window.addEventListener('message', (event: MessageEvent) => {
             break;
             
         case 'proxyStatus':
-            updateProxyStatus(message.isRunning);
+            updateProxyStatus(message.isRunning, message.proxyError, message.proxyStatus);
             break;
             
         case 'costUpdated':
